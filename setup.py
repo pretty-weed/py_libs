@@ -2,7 +2,7 @@
 
 import setuptools
 
-name = 'hb_lib'
+name = 'HBlib'
 
 
 setuptools.setup(
@@ -13,7 +13,7 @@ setuptools.setup(
     url="tylerjachetta.net",
     description="Miscelaneous puppet libraries and utilities",
     long_description="todo",
-    requires=['pyyaml'],
+    install_requires=['PyYAML'],
     license="GPG version 3",
     packages=setuptools.find_packages(),
     data_files=[],
