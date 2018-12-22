@@ -7,7 +7,7 @@ name = 'hb_lib'
 
 setuptools.setup(
     name=name,
-    version='0.1',
+    version='0.2',
     author="Tyler Jachetta",
     author_email="me@tylerjachetta.net",
     url="tylerjachetta.net",
