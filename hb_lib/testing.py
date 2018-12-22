@@ -30,5 +30,5 @@ class ParameterizedCase(unittest.TestCase):
             msg = "this {} has not been set up properly".format(self.__class__.__name__)
             raise NotImplementedError(msg)
 
-            res = self._run_function(self._case_params.input_data)
-            self.assertEqual(res, self._case_params.result)
+        res = self._run_function(self._case_params.input_data)
+        self.assertEqual(res, self._case_params.result)
