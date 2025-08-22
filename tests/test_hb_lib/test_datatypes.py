@@ -3,7 +3,7 @@ import sys
 import random
 import unittest
 
-import hb_lib.datatypes
+import dandy_lib.datatypes
 
 
 class TestStaticDict(unittest.TestCase):
@@ -44,14 +44,14 @@ class TestStaticDict(unittest.TestCase):
 
         for _ in range(cls._num_test_dicts):
             vanilla_dict = cls._get_random_dict(size=cls._random_dict_size)
-            static_dict = hb_lib.datatypes.StaticDict(vanilla_dict)
+            static_dict = dandy_lib.datatypes.StaticDict(vanilla_dict)
 
             cls.test_dicts.append((vanilla_dict, static_dict))
 
 
     def test_init(self):
         try:
-            hb_lib.datatypes.StaticDict()
+            dandy_lib.datatypes.StaticDict()
         except Exception as exc:
             msg = "empty StaticDict init failed with exception: {0}"
             msg += "\n{1}"
@@ -61,7 +61,7 @@ class TestStaticDict(unittest.TestCase):
         test_dict = {'a': 1, 2: "b"}
 
         try:
-            hb_lib.datatypes.StaticDict(test_dict)
+            dandy_lib.datatypes.StaticDict(test_dict)
         except Exception as exc:
             msg = "dict-provided StaticDict init failed with exception: {0}"
             msg += "\n{1}"

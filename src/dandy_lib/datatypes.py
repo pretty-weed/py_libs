@@ -5,7 +5,7 @@ module containing some general-purpose data types and structures that
 are or may be used across projects.
 """
 
-import hb_lib.metaclasses
+import dandy_lib.metaclasses
 
 
 

@@ -1,6 +1,6 @@
 import unittest
 
-import hb_lib.testing
+import dandy_lib.testing
 
 class TestCaseParameters(unittest.TestCase):
 
@@ -10,7 +10,7 @@ class TestCaseParameters(unittest.TestCase):
         test_results = [1, 2, 3, 4]
 
         for input_val, result in zip(test_inputs, test_results):
-            hb_lib.testing.CaseParameters(test_inputs, test_results)
+            dandy_lib.testing.CaseParameters(test_inputs, test_results)
         for input_val, result in zip(test_inputs, test_results):
-            hb_lib.testing.CaseParameters(result=result, input_data=input_val)
+            dandy_lib.testing.CaseParameters(result=result, input_data=input_val)
 
