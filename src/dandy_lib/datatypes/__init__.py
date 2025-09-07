@@ -7,6 +7,7 @@ are or may be used across projects.
 
 import dandy_lib.metaclasses
 
+from . import numeric 
 
 
 class StaticDict(dict):
