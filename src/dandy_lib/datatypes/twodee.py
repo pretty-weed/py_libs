@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 from .numeric import NonNegInt
 @dataclass(unsafe_hash=True)
 class Size:
