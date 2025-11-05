@@ -7,7 +7,7 @@ are or may be used across projects.
 
 from typing import NoReturn
 
-from . import numeric 
+from . import numeric
 
 
 class StaticDict(dict):
@@ -20,8 +20,8 @@ class StaticDict(dict):
     modifying actions are init and add)
     """
 
-    _MSG_ALREADY_ASSIGNED = 'The key {0} has been assigned and StaticDict does not allow reassignment'
-    _MSG_NO_DEL = 'Static Dicts do not allow item deletion'
+    _MSG_ALREADY_ASSIGNED = "The key {0} has been assigned and StaticDict does not allow reassignment"
+    _MSG_NO_DEL = "Static Dicts do not allow item deletion"
 
     def __setitem__(self, key, val) -> None:
         if key in self:

@@ -8,6 +8,7 @@ from typing import Any
 
 # Utility class
 
+
 class Wrapper(type):
 
     def _get_wrapped(self):
