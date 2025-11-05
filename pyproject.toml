@@ -25,11 +25,16 @@ type = [
 ]
 
 
-
 [tool.tox]
 requires = ["tox~=4.28"]
 extras = ["pytest"]
-env_list = ["3.13", "3.14", "3.15", "type"]
+env_list = ["3.13", "3.13-type", "3.13-black", "3.14", "3.15", "3.15-type", "3.15-black"]
+
+[gh-actions]
+python =
+    3.13: "3.13", "3.13-type", "3.13-black"
+    3.14: "3.14"
+    3.15: "3.15", "3.15-type", "3.15-black" 
 
 [tool.tox.env_run_base]
 description = "Run test under {base_python}"
@@ -40,6 +45,12 @@ commands = [["pytest"]]
 description = "run type check on code base"
 extras = ["type"]
 commands = [["mypy", "src/dandy_lib/testing.py", "src/dandy_lib/datatypes/numeric.py", "src/dandy_lib/datatypes/twodee.py"], ["mypy", "tests"]]
+
+
+[tool.tox.env.lint]
+description = "Run linting on code base"
+extras = ["lint"]
+commands = [["black", "src"], ["black", "tests"]]
 
 [tool.setuptools.package-data]
 dandy_lib = ["py.typed"]
