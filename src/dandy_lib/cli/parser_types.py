@@ -12,3 +12,5 @@ def path_exists(in_val: str) -> PurePath:
     res = Path(in_val)
     if not res.exists():
         raise ValueError(f"The path {in_val} does not exist")
+
+    return res
