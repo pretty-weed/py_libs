@@ -5,9 +5,9 @@ module containing some general-purpose data types and structures that
 are or may be used across projects.
 """
 
-import dandy_lib.metaclasses
+from typing import NoReturn
 
-from . import numeric 
+from . import numeric
 
 
 class StaticDict(dict):
@@ -20,13 +20,13 @@ class StaticDict(dict):
     modifying actions are init and add)
     """
 
-    _MSG_ALREADY_ASSIGNED = 'The key {0} has been assigned and StaticDict does not allow reassignment'
-    _MSG_NO_DEL = 'Static Dicts do not allow item deletion'
+    _MSG_ALREADY_ASSIGNED = "The key {0} has been assigned and StaticDict does not allow reassignment"
+    _MSG_NO_DEL = "Static Dicts do not allow item deletion"
 
-    def __setitem__(self, key, val):
+    def __setitem__(self, key, val) -> None:
         if key in self:
             raise TypeError(self._MSG_ALREADY_ASSIGNED.format(key))
         super(StaticDict, self).__setitem__(key, val)
 
-    def __delitem__(self, key):
+    def __delitem__(self, key) -> NoReturn:
         raise TypeError(self._MSG_NO_DEL)

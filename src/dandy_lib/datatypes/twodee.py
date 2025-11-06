@@ -2,6 +2,8 @@ from dataclasses import dataclass
 from typing import Iterator
 
 from .numeric import NonNegInt
+
+
 @dataclass(unsafe_hash=True)
 class Size:
     width: NonNegInt
