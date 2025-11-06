@@ -3,18 +3,25 @@ from argparse import ArgumentParser, Action
 from typing import Any
 
 
-class ForceableFailingAction(Action):
+class ConditionalFailingAction(Action):
     EXCEPTIONS_TO_CATCH = (NotImplementedError,)
     FORCE_DEST = "force"
     FORCE_FLAG = "--force"
+    FORCE_FLAGS = frozenset(["--force"])
 
     _force_parsers = {}
 
     def __init__(self, option_strings, dest, nargs=None, **kwargs):
+        super().__init__(option_strings, dest, nargs=nargs, **kwargs)
+        if self.FORCE_FLAG not in self.FORCE_FLAGS:
+            # could handle this in a metaclass  but meh
+            raise ValueError(
+                f"the class {self.__class__} is misconfigured, as the force flag is not in all possible force flags"
+            )
         if self.FORCE_FLAG not in self._force_parsers:
             force_parser = ArgumentParser()
             force_parser.add_argument(
-                self.FORCE_FLAG, dest=self.FORCE_DEST, action="store_true"
+                *self.FORCE_FLAGS, dest=self.FORCE_DEST, action="store_true"
             )
             self.__class__._force_parsers[self.FORCE_FLAG] = force_parser
 
@@ -22,7 +29,6 @@ class ForceableFailingAction(Action):
             self.FORCE_FLAG
         ].parse_known_args()
         self.force = getattr(parsed, self.FORCE_DEST)
-        super().__init__(option_strings, dest, nargs=nargs, **kwargs)
 
     def _get_val(self, parser, namespace, values, option_string=None) -> Any:
         raise NotImplementedError()
@@ -33,12 +39,20 @@ class ForceableFailingAction(Action):
         raise NotImplementedError()
 
     def __call__(self, parser, namespace, values, option_string=None):
+        single_result: bool = None
+        try:
+            results = [
+                self._get_val(parser, namespace, value, option_string)
+                for value in values
+            ]
+        except TypeError:
+            # single item
+            results = [self._get_val(parser, namespace, values, option_string)]
+            values = [values]
+            single_result = True
+        else:
+            single_result = False
 
-        print("%r %r %r" % (namespace, values, option_string))
-        results = [
-            self._get_val(parser, namespace, value, option_string)
-            for value in values
-        ]
         for result, value in zip(results, values):
             try:
                 self._do_check(
@@ -53,38 +67,4 @@ class ForceableFailingAction(Action):
                     raise exc
                 print("forced")
 
-        setattr(namespace, self.dest, results)
-
-
-"""
-####### Example
-
-from argparse import ArgumentParser
-import pathlib
-
-class FileExistsError(Exception):
-    pass
-
-class TestAction(ForceableFailingAction):
-    EXCEPTIONS_TO_CATCH = (FileExistsError, )
-
-    def _get_val(self, parser, namespace, value, option_string=None) -> pathlib.PurePath:
-        return pathlib.Path(value)
-
-    def _do_check(self, parser, namespace, value, result: pathlib.PurePath, option_string=None) -> None:
-        if result.exists():
-            raise FileExistsError(f"{value} exists")
-
-
-def testme():
-    parser = ArgumentParser()
-    parser.add_argument("--force", action="store_true")
-    parser.add_argument("check_files", action=TestAction, nargs="+", type=pathlib.Path)
-    print(" ##### PARSER CREATED ##### ")
-
-    parsed = parser.parse_args()
-
-    print(parsed)
-
-if __name__ == "__main__":
-    testme()"""
+        setattr(namespace, self.dest, results[0] if single_result else results)

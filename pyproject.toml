@@ -7,11 +7,12 @@ license = "GPL-3.0-only"
 authors = [{name="Dandelion Good", email = "dandeliongood@proton.me"}]
 
 dependencies = [
-    "pyyaml"
+    "pyyaml~=6.0"
 ]
 
 [project.optional-dependencies]
-test = ["tox"]
+test = ["tox~=4.28"]
+tooling = ["pre-commit~=4.3"]
 pytest = [
     "pytest-cov",
     "pytest",
@@ -20,8 +21,8 @@ pytest = [
 lint = ["black"]
 profile = ["snakeviz~=2.2"]
 type = [
-    "types-PyYAML",
-    "mypy"
+    "types-PyYAML~=6.0",
+    "mypy~=1.18"
 ]
 
 
