@@ -1,6 +1,85 @@
-from argparse import ArgumentParser, Action
+from argparse import ArgumentError, ArgumentParser, Action
 
-from typing import Any
+from numbers import Number
+from typing import Any, NamedTuple, Protocol
+
+
+class Named(Protocol):
+    name: str
+
+
+class Range(NamedTuple):
+    start: int
+    end: int
+    arg: str | int
+    inclusive: bool = True
+
+    def is_range(self) -> bool:
+        return self.start == self.end
+
+    @classmethod
+    def new(cls, start, end=None, inclusive=True):
+        """
+        Factory to allow for single value ranges
+        """
+        if end is None:
+            arg = start
+            match start:
+                case "?":
+                    start = 0
+                    end = 1
+                case "*":
+                    start = 0
+                    end = float("inf")
+                case "+":
+                    start = 1
+                    end = float("inf")
+                case Number():
+                    end = start
+                    arg = "+"
+                case _:
+                    raise ValueError(f"Invalid value for a range: {start}")
+            end = start
+        else:
+            arg = "+"
+        return cls(start, end, arg, inclusive=inclusive)
+
+    def __contains__(self, other: Number, inclusive=True) -> bool:
+        if inclusive:
+            return self.start <= other <= self.end
+        return self.start < other < self.end
+
+
+class NargsRangeAction(Action):
+    """
+    Base action to handle a specific range of nargs (e.g. 3 <= num of args <=5)
+
+    As `Action`'s `__call__()` raises exceptions, this class' `__call__()` does
+    not call `__super__()`. As such, this should be used as a base class and
+    not a mixin.
+    """
+
+    def __init__(self, option_strings, dest, nargs=None, **kwargs):
+        if nargs is not None:
+            self.n_range = Range.new(*nargs)
+            nargs = self.n_range.arg
+        else:
+            self.n_range = None
+        super().__init__(option_strings, dest, nargs, **kwargs)
+
+    def __call__(self, parser, namespace, values, option_string=None):
+
+        if self.n_range is not None and not len(values) in self.n_range:
+            help_name = (
+                option_string
+                if option_string
+                else (self.meta if self.meta else self.dest)
+            )
+            expected_msg = f"Expected {self.n_range.start}-{self.n_range.end} ({'not' if not self.n_range.inclusive else ''} inclusive)"
+            raise ArgumentError(
+                self,
+                f"Incorrect number of values for {help_name}: {expected_msg}, got {len(values)} ({values}).",
+            )
 
 
 class ConditionalFailingAction(Action):
