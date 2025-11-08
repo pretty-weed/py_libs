@@ -3,7 +3,7 @@ import sys
 import random
 import unittest
 
-import hb_lib.datatypes
+import dandy_lib.datatypes
 
 
 class TestStaticDict(unittest.TestCase):
@@ -25,7 +25,7 @@ class TestStaticDict(unittest.TestCase):
             choices = string.ascii_uppercase + string.digits
             string_len = random.randint(*string_size)
 
-            return ''.join(random.choices(choices, k=string_len))
+            return "".join(random.choices(choices, k=string_len))
 
         raise AssertionError("This point should never be hit")
 
@@ -34,9 +34,13 @@ class TestStaticDict(unittest.TestCase):
         if size is None:
             size = cls._random_dict_size
 
-        out_dict = dict([(cls._get_random_val(), cls._get_random_val()) for _ in range(size)])
+        out_dict = dict(
+            [
+                (cls._get_random_val(), cls._get_random_val())
+                for _ in range(size)
+            ]
+        )
         return out_dict
-
 
     @classmethod
     def setup_class(cls):
@@ -44,28 +48,27 @@ class TestStaticDict(unittest.TestCase):
 
         for _ in range(cls._num_test_dicts):
             vanilla_dict = cls._get_random_dict(size=cls._random_dict_size)
-            static_dict = hb_lib.datatypes.StaticDict(vanilla_dict)
+            static_dict = dandy_lib.datatypes.StaticDict(vanilla_dict)
 
             cls.test_dicts.append((vanilla_dict, static_dict))
 
-
     def test_init(self):
         try:
-            hb_lib.datatypes.StaticDict()
+            dandy_lib.datatypes.StaticDict()
         except Exception as exc:
             msg = "empty StaticDict init failed with exception: {0}"
             msg += "\n{1}"
-            msg = msg .format(type(exc).__name__, str(exc))
+            msg = msg.format(type(exc).__name__, str(exc))
             self.fail(msg)
 
-        test_dict = {'a': 1, 2: "b"}
+        test_dict = {"a": 1, 2: "b"}
 
         try:
-            hb_lib.datatypes.StaticDict(test_dict)
+            dandy_lib.datatypes.StaticDict(test_dict)
         except Exception as exc:
             msg = "dict-provided StaticDict init failed with exception: {0}"
             msg += "\n{1}"
-            msg = msg .format(type(exc).__name__, str(exc))
+            msg = msg.format(type(exc).__name__, str(exc))
             self.fail(msg)
 
     def test_dict_equality(self):
@@ -89,7 +92,4 @@ class TestStaticDict(unittest.TestCase):
         for _v, test_dict in self.test_dicts:
             for key in test_dict:
                 with self.assertRaises(TypeError):
-                    del(test_dict[key])
-
-
-
+                    del test_dict[key]
