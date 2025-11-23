@@ -61,7 +61,10 @@ class NargsRangeAction(Action):
 
     def __init__(self, option_strings, dest, nargs=None, **kwargs):
         if nargs is not None:
-            self.n_range = Range.new(*nargs)
+            try:
+                self.n_range = Range.new(*nargs)
+            except TypeError:
+                self.n_range = Range.new(nargs)
             nargs = self.n_range.arg
         else:
             self.n_range = None
