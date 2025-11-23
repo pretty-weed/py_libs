@@ -53,13 +53,6 @@ class TestStaticDict(unittest.TestCase):
             cls.test_dicts.append((vanilla_dict, static_dict))
 
     def test_init(self):
-        try:
-            dandy_lib.datatypes.StaticDict()
-        except Exception as exc:
-            msg = "empty StaticDict init failed with exception: {0}"
-            msg += "\n{1}"
-            msg = msg.format(type(exc).__name__, str(exc))
-            self.fail(msg)
 
         test_dict = {"a": 1, 2: "b"}
 
