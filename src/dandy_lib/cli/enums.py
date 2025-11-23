@@ -16,6 +16,7 @@ class ChoiceEnum(enum.Enum):
     def choices(cls) -> list[str]:
         return cls._member_names_
 
+
 class CallableChoiceEnum(ChoiceEnum):
 
     def __call__(self, *args, **kwargs):

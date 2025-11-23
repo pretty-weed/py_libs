@@ -50,16 +50,16 @@ class TestNargsRange(unittest.TestCase):
 
                 if start > 0:
                     with self.assertRaises(ArgumentError):
-                        parser.parse_args("--foo")
+                        parser.parse_args(["--foo"])
 
                     if start > 1:
                         with self.assertRaises(ArgumentError):
                             parser.parse_args(
-                                "--foo", *random.choices(intstrs)[: start - 1]
+                                ["--foo", *random.choices(intstrs, k=start)]
                             )
 
                         parser.parse_args(
-                            "--foo", *random.choices(intstrs)[:start]
+                            ["--foo", *random.choices(intstrs)[:start]]
                         )
 
     def test_working(self):
