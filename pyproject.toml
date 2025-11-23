@@ -24,19 +24,33 @@ type = [
     "types-PyYAML~=6.0",
     "mypy~=1.18"
 ]
+clean = [
+    "coverage"
+]
 
 
 [tool.tox]
 requires = ["tox~=4.28"]
 extras = ["pytest"]
-env_list = ["3.13", "3.14", "3.15", "type", "lint"]
+env_list = ["clean", "3.13", "3.14", "3.15", "type", "lint"]
 
 
 [tool.tox.env_run_base]
 description = "Run test under {base_python}"
 extras = ["pytest"]
-commands = [["pytest", { replace = "posargs", default = [], extend = true } ]]
+commands = [["pytest", "--cov=dandy_lib", "--cov-append", "--cov-report=term-missing", { replace = "posargs", default = ["-vv"], extend = true } ]]
 [tool.tox.env_run_base.set_env]
+
+[tool.tox.env.clean]
+skip_install = true
+deps = ["coverage"]
+allowlist_externals = ["which"]
+commands = [["which", "-a", "coverage"], ["coverage", "erase"]]
+
+[tool.tox.env.report]
+skip_install = true
+deps = ["coverage"]
+commands = [["coverage", "report", "--fail-under=100"]]
 
 [tool.tox.env.pyenv]
 requires = ["virtualenv-pyenv"]
