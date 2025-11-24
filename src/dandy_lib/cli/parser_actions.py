@@ -39,7 +39,7 @@ class Range(NamedTuple):
                     arg = "+"
                 case _:
                     raise ValueError(f"Invalid value for a range: {start}")
-            end = start
+
         else:
             arg = "+"
         return cls(start, end, arg, inclusive=inclusive)
@@ -61,7 +61,10 @@ class NargsRangeAction(Action):
 
     def __init__(self, option_strings, dest, nargs=None, **kwargs):
         if nargs is not None:
-            self.n_range = Range.new(*nargs)
+            try:
+                self.n_range = Range.new(*nargs)
+            except TypeError:
+                self.n_range = Range.new(nargs)
             nargs = self.n_range.arg
         else:
             self.n_range = None
@@ -69,6 +72,11 @@ class NargsRangeAction(Action):
 
     def __call__(self, parser, namespace, values, option_string=None):
 
+        match values:
+            case list() | tuple():
+                pass
+            case _:
+                values = [values]
         if self.n_range is not None and not len(values) in self.n_range:
             help_name = (
                 option_string
