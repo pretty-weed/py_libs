@@ -1,7 +1,13 @@
-from argparse import ArgumentError, ArgumentParser, Action
+from argparse import Action
+from argparse import ArgumentError
+from argparse import ArgumentParser
+from typing import Any
+from typing import NamedTuple
+from typing import Protocol
+from typing import Type
+from typing import TypeAlias
 
-from numbers import Number
-from typing import Any, NamedTuple, Protocol
+Number: TypeAlias = int | float
 
 
 class Named(Protocol):
@@ -34,7 +40,7 @@ class Range(NamedTuple):
                 case "+":
                     start = 1
                     end = float("inf")
-                case Number():
+                case int() | number():
                     end = start
                     arg = "+"
                 case _:
@@ -44,10 +50,9 @@ class Range(NamedTuple):
             arg = "+"
         return cls(start, end, arg, inclusive=inclusive)
 
-    def __contains__(self, other: Number, inclusive=True) -> bool:
-        if inclusive:
-            return self.start <= other <= self.end
-        return self.start < other < self.end
+    # ignore[override] because superclass is object: object
+    def __contains__(self, object: Number) -> bool:  # type: ignore[override]
+        return self.start <= object <= self.end
 
 
 class NargsRangeAction(Action):
@@ -91,12 +96,12 @@ class NargsRangeAction(Action):
 
 
 class ConditionalFailingAction(Action):
-    EXCEPTIONS_TO_CATCH = (NotImplementedError,)
+    EXCEPTIONS_TO_CATCH: tuple[Type[Exception], ...] = (NotImplementedError,)
     FORCE_DEST = "force"
     FORCE_FLAG = "--force"
     FORCE_FLAGS = frozenset(["--force"])
 
-    _force_parsers = {}
+    _force_parsers: dict[str, ArgumentParser] = {}
 
     def __init__(self, option_strings, dest, nargs=None, **kwargs):
         super().__init__(option_strings, dest, nargs=nargs, **kwargs)

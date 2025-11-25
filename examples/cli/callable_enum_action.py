@@ -1,8 +1,10 @@
-
 import argparse
 import enum
 
-from dandy_lib.cli.enums import ChoiceEnum, CallableChoiceEnum, EnumAction
+from dandy_lib.cli.enums import CallableChoiceEnum
+from dandy_lib.cli.enums import ChoiceEnum
+from dandy_lib.cli.enums import EnumAction
+
 
 def example():
 

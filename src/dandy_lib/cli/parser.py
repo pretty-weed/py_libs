@@ -1,11 +1,15 @@
-from argparse import Action, ArgumentParser
-from pathlib import Path, PurePath
+from argparse import Action
+from argparse import ArgumentParser
+from pathlib import Path
 from typing import Callable
+from typing import Type
+from typing import TypeAlias
 
-from . import parser_types, parser_actions
+from . import parser_actions
+from . import parser_types
 
 
-type CFAType = type[parser_actions.ConditionalFailingAction]
+CFAType: TypeAlias = Type[parser_actions.ConditionalFailingAction]
 
 
 class FileExistsError(Exception):
@@ -20,7 +24,7 @@ def add_output_force_overwrite_to_parser(
     overwrite_dest: str = "force_overwrite",
     arg_type: Callable = Path,
     exists_exception: type[Exception] = FileExistsError,
-    action_base: CFAType = parser_actions.ConditionalFailingAction,
+    action_base=parser_actions.ConditionalFailingAction,
 ) -> tuple[Action, Action, CFAType]:
 
     class OutputAction(action_base):
@@ -34,8 +38,8 @@ def add_output_force_overwrite_to_parser(
             parser,
             namespace,
             value,
-            result: PurePath,
-            option_string: str = None,
+            result: Path,
+            option_string: str | None = None,
         ) -> None:
             if result.exists():
                 raise exists_exception(
@@ -44,7 +48,7 @@ def add_output_force_overwrite_to_parser(
 
         def _get_val(
             self, parser, namespace, value, option_string=None
-        ) -> PurePath:
+        ) -> Path:
             return arg_type(value)
 
     overwrite_act = parser.add_argument(

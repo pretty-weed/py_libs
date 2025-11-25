@@ -12,7 +12,13 @@ dependencies = [
 
 [project.optional-dependencies]
 test = ["tox~=4.28"]
-tooling = ["pre-commit~=4.3"]
+tooling = [
+    "pre-commit~=4.3",
+    "reorder-python-imports~=3.16",
+    "types-PyYAML~=6.0",
+    "pytest-mypy~=1.0",
+    "mypy~=1.18"
+]
 pytest = [
     "pytest-cov~=7.0",
     "pytest~=9.0",
