@@ -30,7 +30,7 @@ class EnumAction(Action):
         self,
         option_strings: list[str],
         dest: str,
-        nargs: str | int,
+        nargs: Optional[str | int] = None,
         const: Any = None,
         default: Any = None,
         # This redef is due to the interface of argparse
