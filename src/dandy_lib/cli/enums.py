@@ -83,4 +83,8 @@ class EnumAction(Action):
         )
 
     def __call__(self, parser, namespace, values, option_string=None):
-        setattr(namespace, self.dest, self.enum_choices[values[0]])
+        if self.nargs in ("?", 1):
+            value = values[0]
+        else:
+            value = values
+        setattr(namespace, self.dest, self.enum_choices[value])

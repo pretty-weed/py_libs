@@ -23,7 +23,7 @@ class FuncChoices(CallableChoiceEnum):
         return int(inval) * int(inval)
 
     @enum.member
-    def A(inval: str) -> str:
+    def APPEND(inval: str) -> str:
         return inval + inval
 
 
@@ -61,7 +61,7 @@ def test_stringsAndLiteralNumber(subtest: pytest.Subtests):
         assert parsed.func(3) == 9
 
     with subtest.test("function choices: 1"):
-        parsed = parser.parse_args(["--func", "A"])
+        parsed = parser.parse_args(["--func", "APPEND"])
 
         assert parsed.func in FuncChoices
         assert parsed.func("foo") == "foofoo"
