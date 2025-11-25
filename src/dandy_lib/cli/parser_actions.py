@@ -40,7 +40,7 @@ class Range(NamedTuple):
                 case "+":
                     start = 1
                     end = float("inf")
-                case Number:
+                case int() | number():
                     end = start
                     arg = "+"
                 case _:
