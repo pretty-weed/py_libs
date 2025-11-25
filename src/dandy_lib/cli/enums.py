@@ -2,10 +2,10 @@
 Use enums as choices or subparsers in parsers
 """
 
-from argparse import Action
 import enum
-
-from typing import Any, Callable
+from argparse import Action
+from typing import Any
+from typing import Callable
 
 
 class ChoiceEnum(enum.Enum):
@@ -32,27 +32,31 @@ class EnumAction(Action):
         nargs: str | int,
         const: Any = None,
         default: Any = None,
-        type: Callable | None = None,
-        choices: list[str] | None = None,
+        # This redef is due to the interface of argparse
+        type: Callable | None = None,  # type: ignore[no-redef]
+        choices: list[str] | enum.Enum | None = None,
         required: bool = False,
         metavar: str | None = None,
     ):
-        if choices and (type is not None) and choices != type:
-            raise TypeError(
-                "If choices and type are both provided, they must be the same"
-            )
-        if choices:
-            self.enum_choices = choices
-        elif type is not None:
-            self.enum_choices = choices
-        else:
-            self.enum_choices = None
+        self.enum_choices: ChoiceEnum | None = None
+
+        match (choices, type):
+            case (c, t) if c != None and t != None and c != t:
+                raise TypeError(
+                    "If choices and type are both provided, they must be the same"
+                )
+            case (c, t) if isinstance(c, ChoiceEnum) and (t is None or t == c):
+                self.enum_choices = c
+                type = None
+            case (c, t) if c is None and isinstance(t, ChoiceEnum):
+                self.enum_choices = t
+                type = None
 
         if self.enum_choices is not None:
             choices = self.enum_choices.choices()
             # type = self.enum_choices.type_me
 
-        def type(inval):
+        def type_fn(inval):
             try:
                 self.enum_choices[inval]
             except KeyError as exc:
@@ -68,8 +72,9 @@ class EnumAction(Action):
             nargs=nargs,
             const=const,
             default=default,
-            type=type,
-            choices=choices,
+            type=type if type is not None else type_fn,
+            # The action updates the choices here.
+            choices=choices,  # type: ignore[arg-type]
             required=required,
             metavar=metavar,
         )

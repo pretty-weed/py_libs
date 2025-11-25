@@ -1,12 +1,11 @@
 import argparse
+import random
 from contextlib import ExitStack
 from typing import Any
 from unittest import mock
-import random
-
-import pytest
 
 import dandy_lib.cli.parser_actions as pa
+import pytest
 
 
 @pytest.fixture(scope="function")

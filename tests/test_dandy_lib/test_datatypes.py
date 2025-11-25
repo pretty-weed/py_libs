@@ -1,6 +1,6 @@
+import random
 import string
 import sys
-import random
 import unittest
 
 import dandy_lib.datatypes
