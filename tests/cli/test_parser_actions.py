@@ -31,8 +31,6 @@ class SampleAction(pa.NargsRangeAction):
             match values:
                 case list() | tuple() | str():
                     values = values.__class__(reversed(values))
-        print(parser)
-        print("namespace is", namespace)
         setattr(namespace, self.dest, values)
 
 
