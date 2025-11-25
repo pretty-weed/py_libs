@@ -1,5 +1,5 @@
-from argparse import ArgumentParser
 import pathlib
+from argparse import ArgumentParser
 
 from dandy_lib.cli import parser_actions
 
@@ -21,7 +21,7 @@ class TestAction(parser_actions.ConditionalFailingAction):
         parser,
         namespace,
         value,
-        result: pathlib.PurePath,
+        result: pathlib.Path,
         option_string=None,
     ) -> None:
         if result.exists():
