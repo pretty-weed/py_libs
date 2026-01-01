@@ -34,11 +34,7 @@ def test_with_conflict():
     parser.add_argument(
         "check_files", action=TestAction, nargs="+", type=pathlib.Path
     )
-    print(" ##### PARSER CREATED ##### ")
-
     parsed = parser.parse_args()
-
-    print(parsed)
 
 
 def test_me():
@@ -46,11 +42,7 @@ def test_me():
     parser.add_argument(
         "check_files", action=TestAction, nargs="+", type=pathlib.Path
     )
-    print(" ##### PARSER CREATED ##### ")
-
     parsed = parser.parse_args()
-
-    print(parsed)
 
 
 if __name__ == "__main__":

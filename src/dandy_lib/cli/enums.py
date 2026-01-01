@@ -68,7 +68,6 @@ class EnumAction(Action):
             type = type_fn
             choices = self.enum_choices.choices()  # type: ignore[assignment]
 
-        print(f"choices: {choices}")
         super().__init__(
             option_strings=option_strings,
             dest=dest,
