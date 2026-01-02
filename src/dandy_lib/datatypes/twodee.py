@@ -1,3 +1,4 @@
+from cmath import polar
 from functools import cached_property
 from typing import Annotated, Any, NamedTuple, TypeAlias
 
@@ -32,23 +33,21 @@ class Rect(NamedTuple):
     position: Coord
     size: Size
 
-    def __getattr__(self, name) -> Number:
-        """
-        Automagically get child element attributes (e.g. width, x)
-        so frickin lazy
-        """
-        raise_exc: None | AttributeError = None
-        for element in self:
-            try:
-                return getattr(element, name)
-            except AttributeError:
-                pass
+    @property
+    def x(self) -> Number:
+        return self.position.x
 
-        # Gonna raise an exception
-        try:
-            return super().__getattr__(name)  # type: ignore[misc]
-        except AttributeError:
-            raise AttributeError(f"{type(self)} has no attribute {name}")
+    @property
+    def y(self) -> Number:
+        return self.position.y
+
+    @property
+    def width(self) -> Number:
+        return self.size.width
+
+    @property
+    def height(self) -> Number:
+        return self.size.height
 
     @cached_property
     def top(self) -> Number:
