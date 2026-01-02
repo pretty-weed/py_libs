@@ -46,7 +46,7 @@ class Rect(NamedTuple):
 
         # Gonna raise an exception
         try:
-            return super().__getattr__(name)  # type: ignore
+            return super().__getattr__(name)  # type: ignore[misc]
         except AttributeError:
             raise AttributeError(f"{type(self)} has no attribute {name}")
 
