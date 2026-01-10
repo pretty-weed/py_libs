@@ -1,9 +1,7 @@
-from cmath import polar
-from functools import cached_property
-from typing import Annotated, Any, NamedTuple, TypeAlias
+from functools import lru_cache
+from typing import NamedTuple
 
-from annotated_types import Ge
-from .numeric import NonNegFloat, NonNegInt
+from .numeric import NonNegInt, NonNegFloat
 
 
 class Size(NamedTuple):
@@ -33,50 +31,58 @@ class Rect(NamedTuple):
     position: Coord
     size: Size
 
-    @property
-    def x(self) -> Number:
-        return self.position.x
+    def __getattr__(self, name: str) -> Number:
+        """
+        Automagically get child element attributes (e.g. width, x)
+        so frickin lazy
+        """
+        import pdb
+
+        pdb.set_trace()
+        for element in self:
+            try:
+                return getattr(element, name)
+            except AttributeError:
+                pass
+
+        raise AttributeError(f"'{self}' object has no attribute '{name}'.")
 
     @property
-    def y(self) -> Number:
-        return self.position.y
-
-    @property
-    def width(self) -> Number:
-        return self.size.width
-
-    @property
-    def height(self) -> Number:
-        return self.size.height
-
-    @cached_property
+    @lru_cache
     def top(self) -> Number:
         return self.y
 
-    @cached_property
+    @property
+    @lru_cache
     def bottom(self) -> Number:
         return self.y + self.height
 
-    @cached_property
+    @property
+    @lru_cache
     def left(self) -> Number:
         return self.y
 
-    @cached_property
+    @property
+    @lru_cache
     def right(self) -> Number:
         return self.y + self.width
 
-    @cached_property
+    @property
+    @lru_cache
     def top_left(self) -> Coord:
         return Coord(self.x, self.y)
 
-    @cached_property
+    @property
+    @lru_cache
     def bottom_left(self) -> Coord:
         return Coord(self.bottom, self.right)
 
-    @cached_property
+    @property
+    @lru_cache
     def top_right(self) -> Coord:
         return Coord(self.x, self.right)
 
-    @cached_property
+    @property
+    @lru_cache
     def bottom_right(self) -> Coord:
         return Coord(self.bottom, self.right)
