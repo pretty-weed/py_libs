@@ -36,9 +36,6 @@ class Rect(NamedTuple):
         Automagically get child element attributes (e.g. width, x)
         so frickin lazy
         """
-        import pdb
-
-        pdb.set_trace()
         for element in self:
             try:
                 return getattr(element, name)
