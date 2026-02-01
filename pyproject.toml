@@ -46,7 +46,7 @@ env_list = ["clean", "3.13", "3.14", "3.15", "type", "lint"]
 [tool.tox.env_run_base]
 description = "Run test under {base_python}"
 extras = ["pytest"]
-commands = [["pytest", "--cov=dandy_lib", "--cov-append", "--cov-report=term-missing", { replace = "posargs", default = ["-vv"], extend = true } ]]
+commands = [["python", "-m", "pytest", "--cov=dandy_lib", "--cov-append", "--cov-report=term-missing", { replace = "posargs", default = ["-vv"], extend = true } ]]
 
 [tool.tox.env.clean]
 skip_install = true
@@ -67,8 +67,10 @@ VIRTUALENV_DISCOVERY = "pyenv"
 
 [tool.tox.env.type]
 description = "run type check on code base"
-extras = ["type"]
-commands = [["mypy", "src/dandy_lib/testing.py", "src/dandy_lib/datatypes/numeric.py", "src/dandy_lib/datatypes/twodee.py"], ["mypy", "tests"]]
+extras = ["type", "pytest"]
+commands = [["mypy", "src"], ["mypy", "tests"]]
+[tool.tox.env.type.set_env]
+MYPATH = "type_stubs"
 
 
 [tool.tox.env.lint]

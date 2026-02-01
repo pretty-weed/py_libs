@@ -8,7 +8,6 @@ from typing import TypeAlias
 from . import parser_actions
 from . import parser_types
 
-
 CFAType: TypeAlias = Type[parser_actions.ConditionalFailingAction]
 
 

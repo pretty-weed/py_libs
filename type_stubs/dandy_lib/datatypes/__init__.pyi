@@ -1,0 +1,6 @@
+from . import numeric as numeric
+from typing import NoReturn
+
+class StaticDict(dict):
+    def __setitem__(self, key, val) -> None: ...
+    def __delitem__(self, key) -> NoReturn: ...
