@@ -1,27 +1,5 @@
 version: "3"
 
-vars:
-  CURRENT_OS_REPO:
-    sh: lsb_release --id --short || echo "ubuntu"
-  CURRENT_TAG:
-    sh: lsb_release --release --short || echo "latest"
-  ALL_EXTRAS:
-    sh: python3 -c "import tomllib, pathlib;print(','.join(tomllib.loads(pathlib.Path('pyproject.toml').read_text()).get('project', {}).get('optional-dependencies', {}).keys()))"
-  EXTRAS:
-    ref: splitList "," .ALL_EXTRAS
-  DOCKER_TAG_REPO: '{{ .CONTAINER_TAG | default "dd-toolbelt" }}'
-  CONTAINER_WORKING_COPY_DIR: /tmp/working_copy
-
-  DEFAULT_BIN_DIR:
-    sh: |
-      bin_path=""
-      for test_path in $(echo $PATH | tr ":" "\n"); do
-      [[ "${test_path}" == $HOME/*bin ]] && bin_path="${test_path}" || :
-      done
-      echo "${bin_path}"
-      (test -n "${bin_path}" && echo "${bin_path}") || (echo "${bin_path} does not exist! && exit 2")
-
-
 tasks:
   stubs-deps:
     internal: true
