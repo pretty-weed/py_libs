@@ -2,18 +2,9 @@ from inspect import signature
 from sys import version_info
 
 from pytest import mark
-
-if version_info.major > 3 or (
-    version_info.major == 3 and version_info.minor >= 14
-):
-    from dandy_lib.datatypes.tuples import MixableNamedTuple
-
-    skip_lte313 = False
-else:
-    skip_lte313 = True
+from dandy_lib.datatypes.tuples import MixableNamedTuple
 
 
-@mark.skipif(skip_lte313, reason="Pre 3.14 Python")
 def test_mixin_tuples() -> None:
     # """
 

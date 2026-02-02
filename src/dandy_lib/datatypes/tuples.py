@@ -2,24 +2,6 @@
 Ain't exactly great practice, but kinda fuckin around with this.
 """
 
-# annotation lib added 3.13
-try:
-    import annotationlib
-except ImportError as exc:
-    from sys import version_info
-
-    if version_info.minor < 14:
-        raise NotImplementedError(
-            "tuples not yet implemented for < 3.14"
-        ) from exc
-    raise exc
-else:
-    from annotationlib import (
-        call_annotate_function,
-        get_annotate_from_class_namespace,
-        Format,
-    )
-
 from collections import namedtuple
 from collections.abc import Iterable
 from copy import copy, deepcopy
@@ -32,6 +14,33 @@ from typing import (  # type: ignore[attr-defined]
     NamedTupleMeta,
     Self,
 )
+
+# annotation lib added 3.13
+try:
+    import annotationlib
+except ImportError:
+    _no_anno_lib = True
+
+    def get_annotate_from_class_namespace(obj: dict[str, Any]) -> Any:
+        try:
+            return obj["__annotate__"]
+        except KeyError:
+            return obj.get("__annotate_func__", None)
+
+    def call_annotate_function(
+        annotate: Callable[[int], dict[str, type]], format
+    ) -> dict[str, type]:
+        # 2 is value with fake globals
+        return annotate(2)
+
+else:
+    _no_anno_lib = False
+    from annotationlib import (
+        call_annotate_function,
+        get_annotate_from_class_namespace,
+        Format,
+    )
+NO_ANNOTATION_LIB = _no_anno_lib
 
 # Only needed for annotationlib related stuff
 try:
@@ -78,7 +87,12 @@ def _get_params_from_bases(bases: list[type] | None) -> dict[str, Parameter]:
         if tuple not in getmro(base):
             continue
         # Ignore is for type checker thinking base.__annotate__ is None
-        for pname, ptype in base.__annotate__(Format.VALUE).items():  # type: ignore[misc]
+        try:
+            annotations: dict[str, type] = base.__annotate__(Format.VALUE)  # type: ignore[misc]
+        except AttributeError as exc:
+            # python3.13 and earlier will hit this
+            annotations = copy(base.__annotations__)
+        for pname, ptype in annotations.items():  # type: ignore[misc]
             if pname in params:
                 continue
             if (
@@ -139,11 +153,11 @@ class MixinableNamedTupleMeta(NamedTupleMeta):
             types = call_annotate_function(original_annotate, Format.FORWARDREF)
             original_annotate = original_annotate
 
-            defaults.update(dict((k, ns[k]) for k in types if k in ns))
         else:
             types = {}
             annotate = lambda format: {}
 
+        defaults.update(dict((k, ns[k]) for k in types if k in ns))
         base_annotations: dict[str, type] = dict(
             (k, v.annotation) for k, v in base_namespace.items()
         )
