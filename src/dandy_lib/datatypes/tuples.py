@@ -36,9 +36,9 @@ except ImportError:
 
 else:
     _no_anno_lib = False
-    from annotationlib import (
-        call_annotate_function,  # type: ignore[no-redef]
-        get_annotate_from_class_namespace,  # type: ignore[no-redef]
+    from annotationlib import (  # type: ignore[no-redef]
+        call_annotate_function,
+        get_annotate_from_class_namespace,
         Format,
     )
 NO_ANNOTATION_LIB = _no_anno_lib
