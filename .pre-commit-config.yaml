@@ -12,6 +12,8 @@ repos:
     rev: 'v1.18.2'  # Use the sha / tag you want to point at
     hooks:
     -   id: mypy
+        exclude: '.*.pyi$'
+        pass_filenames: true
         additional_dependencies:
         - types-PyYAML
         - pytest-mypy

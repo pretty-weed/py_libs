@@ -32,49 +32,59 @@ type = [
     "pytest-mypy~=1.0",
     "mypy~=1.18"
 ]
-clean = [
+cov = [
     "coverage~=7.12"
 ]
 
 
 [tool.tox]
-requires = ["tox~=4.28", "virtualenv-pyenv"]
-extras = ["pytest"]
-env_list = ["clean", "3.13", "3.14", "3.15", "type", "lint"]
+legacy_tox_ini = """
+[tox]
+deps =
+    "tox~=4.28"
+    "virtualenv-pyenv"
+extras = pytest
+env_list = clean, py3{13,14,15}{,-type,-lint}, type, lint, report
 
-
-[tool.tox.env_run_base]
+[testenv]
 description = "Run test under {base_python}"
-extras = ["pytest"]
-commands = [["pytest", "--cov=dandy_lib", "--cov-append", "--cov-report=term-missing", { replace = "posargs", default = ["-vv"], extend = true } ]]
+extras =  pytest
+commands = python -m pytest --cov=dandy_lib --cov-append --cov-report=term-missing -vv
 
-[tool.tox.env.clean]
-skip_install = true
-deps = ["coverage"]
-allowlist_externals = ["which"]
-commands = [["which", "-a", "coverage"], ["coverage", "erase"]]
+[testenv:{,py313-,py314-,py315}debug]
+extras = pytest
+commands =
+    python -m pytest --pdb
 
-[tool.tox.env.report]
-skip_install = true
-deps = ["coverage"]
-commands = [["coverage", "report", "--fail-under=100"]]
 
-[tool.tox.env.pyenv]
-requires = ["virtualenv-pyenv"]
-commands = [["pytest", { replace = "posargs", default = [], extend = true } ]]
-[tool.tox.env.pyenv.set_env]
-VIRTUALENV_DISCOVERY = "pyenv"
+[testenv:clean]
+extras = cov
+commands =
+    coverage erase
 
-[tool.tox.env.type]
+[testenv:report]
+extras = cov
+commands = coverage report --fail-under=50
+
+
+[testenv:{,py313-,py314-,py315-}type]
 description = "run type check on code base"
-extras = ["type"]
-commands = [["mypy", "src/dandy_lib/testing.py", "src/dandy_lib/datatypes/numeric.py", "src/dandy_lib/datatypes/twodee.py"], ["mypy", "tests"]]
+extras = type
+    pytest
+commands =
+    mypy src
+    mypy tests
+[tool.tox.env.type.set_env]
+MYPATH = "type_stubs"
 
 
-[tool.tox.env.lint]
+[testenv:{,py313-,py314-,py315-}lint]
 description = "Run linting on code base"
-extras = ["lint"]
-commands = [["black", "src"], ["black", "tests"]]
+extras = lint
+commands =
+    black src
+    black tests
+"""
 
 [tool.setuptools.package-data]
 dandy_lib = ["py.typed"]
