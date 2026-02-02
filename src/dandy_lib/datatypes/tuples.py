@@ -15,9 +15,10 @@ from typing import (  # type: ignore[attr-defined]
     Self,
 )
 
-# annotation lib added 3.13
+# annotation lib added 3.14
 try:
-    import annotationlib
+    # Ignore not found, since supporting 3.13
+    import annotationlib  # type: ignore[import-not-found]
 except ImportError:
     _no_anno_lib = True
 
