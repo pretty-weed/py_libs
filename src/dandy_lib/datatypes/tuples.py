@@ -89,7 +89,7 @@ def _get_params_from_bases(bases: list[type] | None) -> dict[str, Parameter]:
             continue
         # Ignore is for type checker thinking base.__annotate__ is None
         try:
-            annotations: dict[str, type] = base.__annotate__(Format.VALUE)  # type: ignore[misc]
+            annotations: dict[str, type] = base.__annotate__(Format.VALUE)  # type: ignore[attr-defined, misc]
         except AttributeError as exc:
             # python3.13 and earlier will hit this
             annotations = copy(base.__annotations__)
