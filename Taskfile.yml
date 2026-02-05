@@ -26,6 +26,7 @@ tasks:
     cmds:
       - tox -- --pdb {{ .CLI_ARGS }}
 
-  type:
+  type-check:
+    aliases: ["type", "typing"]
     cmds:
       - tox -e type -- {{ .CLI_ARGS }}
