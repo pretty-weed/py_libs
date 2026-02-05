@@ -71,9 +71,11 @@ commands = coverage report --fail-under=50
 description = "run type check on code base"
 extras = type
     pytest
+    lint
 commands =
     mypy src
     mypy tests
+    black type_stubs
 [tool.tox.env.type.set_env]
 MYPATH = "type_stubs"
 
