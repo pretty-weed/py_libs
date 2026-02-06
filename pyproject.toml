@@ -44,17 +44,17 @@ deps =
     "tox~=4.28"
     "virtualenv-pyenv"
 extras = pytest
-env_list = clean, py3{13,14,15}{,-type,-lint}, type, lint, report
+env_list = clean, 3{.13,.14,.15}{,-type,-lint}, type, lint, report
 
 [testenv]
 description = "Run test under {base_python}"
 extras =  pytest
-commands = python -m pytest --cov=dandy_lib --cov-append --cov-report=term-missing -vv
+commands = python -m pytest --cov=dandy_lib --cov-append --cov-report=term-missing {posargs: -vv}
 
-[testenv:{,py313-,py314-,py315}debug]
+[testenv:{,3.13-,3.14-,3.15}debug]
 extras = pytest
 commands =
-    python -m pytest --pdb
+    python -m pytest --pdb {posargs}
 
 
 [testenv:clean]
@@ -67,7 +67,7 @@ extras = cov
 commands = coverage report --fail-under=50
 
 
-[testenv:{,py313-,py314-,py315-}type]
+[testenv:{,3.13-,3.14-,3.15-}type]
 description = "run type check on code base"
 extras = type
     pytest
@@ -80,7 +80,7 @@ commands =
 MYPATH = "type_stubs"
 
 
-[testenv:{,py313-,py314-,py315-}lint]
+[testenv:{,3.13-,3.14-,3.15-}lint]
 description = "Run linting on code base"
 extras = lint
 commands =

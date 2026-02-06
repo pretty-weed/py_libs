@@ -1,6 +1,10 @@
 version: "3"
 
 tasks:
+  clean:
+    run: once
+    cmds:
+      - rm -rf .tox .task .pytest_cache .mypy_cache
   stubs-deps:
     internal: true
     sources:
@@ -22,9 +26,12 @@ tasks:
     cmds:
       - tox -- {{ .CLI_ARGS }}
 
+
   debug:
+    vars:
+      ENV: '-e {{ .CLI_ARGS | default "313-debug,314-debug" }}'
     cmds:
-      - tox -- --pdb {{ .CLI_ARGS }}
+      - tox  {{ .ENV }} -- --pdb
 
   type-check:
     aliases: ["type", "typing"]

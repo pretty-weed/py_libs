@@ -156,7 +156,7 @@ class MixinableNamedTupleMeta(NamedTupleMeta):
         if ANNOTATIONS in ns:
             types = ns[ANNOTATIONS]
             for pname, ptype in base_namespace.items():
-                if pname not in ns[ANNOTATIONS]:
+                if pname not in ns[ANNOTATIONS] and pname not in ns:
                     ns[ANNOTATIONS][pname] = ptype
             annotate: Callable[[int | Format], dict[str, Any]] = (
                 _make_eager_annotate(types)
@@ -230,7 +230,7 @@ def MixableNamedTuple(
     bases: list[type] | None = None,
     /,
     **kwargs: Any,
-) -> NamedTuple:  # type: ignore[valid-type]
+) -> type[tuple]:  # type: ignore[valid-type]
     """
     Mixinable named tuple type
     """
@@ -241,8 +241,7 @@ def MixableNamedTuple(
     base_fields = dict(
         (k, v.annotation) for k, v in _get_params_from_bases(bases).items()
     )
-
-    return NamedTuple(typename, (base_fields | fields_dict).items())
+    return NamedTuple(typename, (base_fields | fields_dict).items())  # type: ignore[return-value]
 
 
 def _mixablenamedtuple_mro_entries(bases):

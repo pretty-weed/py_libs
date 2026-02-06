@@ -1,3 +1,4 @@
+from collections import namedtuple
 from collections.abc import Iterator
 from inspect import signature
 from math import pi
@@ -20,7 +21,7 @@ class BaseClass(MixableNamedTuple, RootClass):  # type: ignore[misc, valid-type]
     bar: str = ""
 
 
-def test_mixin_tuples() -> None:
+def test_mixin_tuples(subtests) -> None:
     # """
 
     class TestClass(MixableNamedTuple, BaseClass):  # type: ignore[misc, valid-type]
@@ -33,31 +34,47 @@ def test_mixin_tuples() -> None:
     # TestBaseClass = MixableNamedTuple("TestBaseClass", [("a", int), ("b", int), ("foo", str), ("bar", str)])
     # TestClass = MixableNamedTuple("TestClass", [("b", str), ("c", str)], [TestBaseClass])
     r = RootClass()
-    a = BaseClass(1, 2, "1", "2")
-    b = TestClass(
-        1,
-        "2",
-        "3",
-        "abc",
-    )
-    c = TestClass(5, 13, "foo", "bar", "c")
+    with subtests.test("Base class"):
+        a = BaseClass(1, 2, "1", "2")
 
-    assert a.a == 1
-    assert a.b == 2
-    assert a.foo == "1"
-    assert a.bar == "2"
+        assert a.a == 1
+        assert a.b == 2
+        assert a.foo == "1"
+        assert a.bar == "2"
 
-    assert b.a == 1
-    assert b.b == "2"
-    assert b.foo == "3"
-    assert b.bar == "abc"
-    assert b.c == "xyz"
+    with subtests.test("Test inherited/mixed in"):
+        b = TestClass(
+            1,
+            "2",
+            "3",
+            "abc",
+        )
+        c = TestClass(5, 13, "foo", "bar", "c")
 
-    assert c.a == 5
-    assert c.b == 13
-    assert c.foo == "foo"
-    assert c.bar == "bar"
-    assert c.c == "c"
+        assert b.a == 1
+        assert b.b == "2"
+        assert b.foo == "3"
+        assert b.bar == "abc"
+        assert b.c == "xyz"
+
+        assert c.a == 5
+        assert c.b == 13
+        assert c.foo == "foo"
+        assert c.bar == "bar"
+        assert c.c == "c"
+
+    with subtests.test("Test Function call style"):
+
+        FnClass: type[tuple] = MixableNamedTuple(
+            "FnClass", [("c", float), ("d", float)], [BaseClass]
+        )
+        d = FnClass(1, 2, "a", "b", 3.5, 4.6)  # type: ignore[arg-type, call-arg]
+        assert d.a == 1  # type: ignore[attr-defined]
+        assert d.b == 2  # type: ignore[attr-defined]
+        assert d.c == 3.5  # type: ignore[attr-defined]
+        assert d.d == 4.6  # type: ignore[attr-defined]
+        assert d.foo == "a"  # type: ignore[attr-defined]
+        assert d.bar == "b"  # type: ignore[attr-defined]
 
 
 def test_nonannotated_override() -> None:
