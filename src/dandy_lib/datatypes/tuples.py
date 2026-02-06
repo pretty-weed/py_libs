@@ -5,14 +5,17 @@ Ain't exactly great practice, but kinda fuckin around with this.
 from collections import namedtuple
 from collections.abc import Iterable
 from copy import copy, deepcopy
+from enum import IntEnum
 from inspect import _ParameterKind, Parameter, getmro
 from typing import (  # type: ignore[attr-defined]
     Any,
     Callable,
+    ClassVar,
     NamedTuple,
     _NamedTuple,
     NamedTupleMeta,
     Self,
+    get_origin,
 )
 
 # annotation lib added 3.14
@@ -20,7 +23,6 @@ try:
     # Ignore not found, since supporting 3.13
     import annotationlib  # type: ignore[import-not-found]
 except ImportError:
-    _no_anno_lib = True
 
     def get_annotate_from_class_namespace(obj: dict[str, Any]) -> Any:
         try:
@@ -34,14 +36,18 @@ except ImportError:
         # 2 is value with fake globals
         return annotate(2)
 
+    class Format(IntEnum):
+        VALUE = 1
+        VALUE_WITH_FAKE_GLOBALS = 2
+        FORWARDREF = 3
+        STRING = 4
+
 else:
-    _no_anno_lib = False
-    from annotationlib import (  # type: ignore[no-redef]
+    from annotationlib import (  # type: ignore[no-redef, assignment]
         call_annotate_function,
         get_annotate_from_class_namespace,
         Format,
     )
-NO_ANNOTATION_LIB = _no_anno_lib
 
 # Only needed for annotationlib related stuff
 try:
@@ -50,14 +56,14 @@ except ImportError:
 
     def _make_eager_annotate(
         types: dict[str, type],
-    ) -> Callable[[int], dict[str, Any]]:
+    ) -> Callable[[int | Format], dict[str, Any]]:
         # TODO maybe check types like they do in annotationlib _type_check
         new_types = dict((k, v) for k, v in types.items())
 
-        def annotate(format: int) -> dict[str, Any]:
+        def annotate(format: int | Format) -> dict[str, Any]:
             """
             Format matched from annotationlib Format IntEnum:
-            class Format(enum.IntEnum):
+            class Format(IntEnum):
                 VALUE = 1
                 VALUE_WITH_FAKE_GLOBALS = 2
                 FORWARDREF = 3
@@ -76,6 +82,7 @@ except ImportError:
 
 
 ANNOTATIONS = "__annotations__"
+ANNOTATE_FUNC = "__annotate_func__"
 
 
 def _get_params_from_bases(bases: list[type] | None) -> dict[str, Parameter]:
@@ -89,7 +96,7 @@ def _get_params_from_bases(bases: list[type] | None) -> dict[str, Parameter]:
             continue
         # Ignore is for type checker thinking base.__annotate__ is None
         try:
-            annotations: dict[str, type] = base.__annotate__(Format.VALUE)  # type: ignore[attr-defined, misc]
+            annotations: dict[str, type] = base.__annotate__(Format.VALUE)  # type: ignore[arg-type, attr-defined, misc]
         except AttributeError as exc:
             # python3.13 and earlier will hit this
             annotations = copy(base.__annotations__)
@@ -117,11 +124,22 @@ def _get_params_from_bases(bases: list[type] | None) -> dict[str, Parameter]:
     return params
 
 
+def _get_defaults(
+    ns: dict[str, Any], base_namespace: dict[str, Parameter]
+) -> dict[str, Any]:
+    return dict(
+        (k, p.default)
+        for k, p in base_namespace.items()
+        if p.default is not p.empty
+    ) | dict((k, ns[k]) for k in base_namespace if k in ns)
+
+
 class MixinableNamedTupleMeta(NamedTupleMeta):
     def __new__(cls, typename, bases: list[type], ns: dict[str, Any]) -> Self:
         """
         Add fields from inherited named tuples to the new one
         """
+
         bases = [
             base
             for base in bases
@@ -133,16 +151,12 @@ class MixinableNamedTupleMeta(NamedTupleMeta):
         base_namespace = _get_params_from_bases(ns["__orig_bases__"])
         original_annotate: None | Callable[[Format], dict[str, Any]] = None
 
-        defaults: dict[str, Any] = dict(
-            (k, p.default)
-            for k, p in base_namespace.items()
-            if p.default is not p.empty
-        ) | dict((k, ns[k]) for k in base_namespace if k in ns)
+        defaults: dict[str, Any] = _get_defaults(ns, base_namespace)
 
         if ANNOTATIONS in ns:
             types = ns[ANNOTATIONS]
             for pname, ptype in base_namespace.items():
-                if pname not in ns[ANNOTATIONS]:
+                if pname not in ns[ANNOTATIONS] and pname not in ns:
                     ns[ANNOTATIONS][pname] = ptype
             annotate: Callable[[int | Format], dict[str, Any]] = (
                 _make_eager_annotate(types)
@@ -153,14 +167,23 @@ class MixinableNamedTupleMeta(NamedTupleMeta):
 
             types = call_annotate_function(original_annotate, Format.FORWARDREF)
             original_annotate = original_annotate
-
+        elif base_namespace and ANNOTATE_FUNC in ns:
+            # capturing where there's no new namedtuple members
+            original_annotate = lambda format: {}
+            types = original_annotate(Format.VALUE)
         else:
             types = {}
-            annotate = lambda format: {}
-
+            original_annotate = lambda format: {}
         defaults.update(dict((k, ns[k]) for k in types if k in ns))
         base_annotations: dict[str, type] = dict(
             (k, v.annotation) for k, v in base_namespace.items()
+        )
+        # Find things that have been removed from the class nt fields
+        field_remove = set(
+            dk
+            for dk in defaults
+            if (dk in ns and dk not in types)
+            or get_origin(types.get(dk)) is ClassVar
         )
         # Start with base items without defaults
         annotations: dict[str, type] = dict(
@@ -172,9 +195,11 @@ class MixinableNamedTupleMeta(NamedTupleMeta):
         )
         # Add default items back in from merged bases + ns
         annotations.update(
-            (k, v)
-            for k, v in (base_annotations | types).items()
-            if k in defaults
+            dict(
+                (k, v)
+                for k, v in (base_annotations | types).items()
+                if k in defaults and k not in field_remove
+            )
         )
 
         if ANNOTATIONS in ns:
@@ -190,7 +215,7 @@ class MixinableNamedTupleMeta(NamedTupleMeta):
                 # TODO: DO if format != annotationlib.Format.STRING: check from typing.py
                 return deepcopy(annotations)
 
-            ns["__annotate_func__"] = annotate
+            ns[ANNOTATE_FUNC] = annotate
         return super().__new__(cls, typename, bases, ns)
 
 
@@ -205,7 +230,7 @@ def MixableNamedTuple(
     bases: list[type] | None = None,
     /,
     **kwargs: Any,
-) -> NamedTuple:  # type: ignore[valid-type]
+) -> type[tuple]:  # type: ignore[valid-type]
     """
     Mixinable named tuple type
     """
@@ -216,8 +241,7 @@ def MixableNamedTuple(
     base_fields = dict(
         (k, v.annotation) for k, v in _get_params_from_bases(bases).items()
     )
-
-    return NamedTuple(typename, (base_fields | fields_dict).items())
+    return NamedTuple(typename, (base_fields | fields_dict).items())  # type: ignore[return-value]
 
 
 def _mixablenamedtuple_mro_entries(bases):

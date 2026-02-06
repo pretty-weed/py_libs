@@ -130,8 +130,8 @@ class ConditionalFailingAction(Action):
     ) -> None:
         raise NotImplementedError()
 
-    def __call__(self, parser, namespace, values, option_string=None):
-        single_result: bool = None
+    def __call__(self, parser, namespace, values, option_string=None) -> None:
+        single_result: bool | None = None
         try:
             results = [
                 self._get_val(parser, namespace, value, option_string)

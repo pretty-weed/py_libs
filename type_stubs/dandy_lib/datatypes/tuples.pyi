@@ -1,9 +1,22 @@
-from collections import namedtuple
+from _typeshed import Incomplete
+from collections import namedtuple as namedtuple
 from collections.abc import Iterable as Iterable
-from copy import copy as copy
-from typing import Any, NamedTuple, NamedTupleMeta, Self
+from enum import IntEnum
+from typing import Any, Callable, NamedTuple, NamedTupleMeta, Self
+
+def get_annotate_from_class_namespace(obj: dict[str, Any]) -> Any: ...
+def call_annotate_function(
+    annotate: Callable[[int], dict[str, type]], format
+) -> dict[str, type]: ...
+
+class Format(IntEnum):
+    VALUE = 1
+    VALUE_WITH_FAKE_GLOBALS = 2
+    FORWARDREF = 3
+    STRING = 4
 
 ANNOTATIONS: str
+ANNOTATE_FUNC: str
 
 class MixinableNamedTupleMeta(NamedTupleMeta):
     def __new__(
@@ -12,5 +25,10 @@ class MixinableNamedTupleMeta(NamedTupleMeta):
 
 MixableNamedTupleBase: NamedTupleMeta
 
-class MixableNamedTuple(NamedTuple):
-    pass
+def MixableNamedTuple(
+    typename: str,
+    fields: list[tuple[str, type]] | None = None,
+    bases: list[type] | None = None,
+    /,
+    **kwargs: Any,
+) -> NamedTuple: ...
