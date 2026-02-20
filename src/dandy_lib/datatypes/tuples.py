@@ -216,7 +216,17 @@ class MixinableNamedTupleMeta(NamedTupleMeta):
                 return deepcopy(annotations)
 
             ns[ANNOTATE_FUNC] = annotate
-        return super().__new__(cls, typename, bases, ns)
+        res = super().__new__(cls, typename, bases, ns)
+        # Re-add bases, so that mixin methods can be used
+        res.__bases__ = (
+            tuple(
+                base
+                for base in ns["__orig_bases__"]
+                if base not in res.__bases__ and base is not MixableNamedTuple
+            )
+            + res.__bases__
+        )
+        return res
 
 
 MixableNamedTupleBase: NamedTupleMeta = type.__new__(

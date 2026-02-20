@@ -2,6 +2,7 @@ from collections import namedtuple
 from collections.abc import Iterator
 from inspect import signature
 from math import pi
+from re import A
 from sys import version_info
 from typing import ClassVar
 
@@ -77,7 +78,7 @@ def test_mixin_tuples(subtests) -> None:
         assert d.bar == "b"  # type: ignore[attr-defined]
 
 
-def test_nonannotated_override() -> None:
+def test_non_annotated_override() -> None:
     class TestOverride(MixableNamedTuple, BaseClass):  # type: ignore[misc, valid-type]
 
         b = 3.14  # type: ignore[assignment]
@@ -85,7 +86,7 @@ def test_nonannotated_override() -> None:
 
     to = TestOverride(1, "1", "2")
     assert to.a == 1
-    assert to.b == 3.14
+    assert to.b == 3.14  # type: ignore[has-type]
     assert to.d == pi
     assert to.foo == "1"
     assert to.bar == "2"
@@ -103,3 +104,26 @@ def test_classvar_override() -> None:
     assert to.d == pi
     assert to.foo == "1"
     assert to.bar == "2"
+
+
+def test_methods() -> None:
+    class HasMethod(MixableNamedTuple):  # type: ignore[misc, valid-type]
+        a: int
+        b: str
+
+        def foo(self) -> str:
+            return f"{self.a} - {self.b}"
+
+        def bar(self, baz: int) -> int:
+            return baz * self.a
+
+    hm = HasMethod(1, "two")
+    assert hm.foo() == "1 - two"
+    assert hm.bar(3) == 3
+
+    class MethodInherit(MixableNamedTuple, HasMethod):  # type: ignore[misc, valid-type]
+        d: float = 3.3333
+
+    mi = MethodInherit(3, "four")
+    assert mi.foo() == "3 - four"
+    assert mi.bar(3) == 9
