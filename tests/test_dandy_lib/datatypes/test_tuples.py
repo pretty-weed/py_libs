@@ -4,9 +4,9 @@ from inspect import signature
 from math import pi
 from re import A
 from sys import version_info
-from typing import ClassVar
+from typing import Any, ClassVar, NamedTuple
 
-from pytest import fixture
+from pytest import Subtests, approx, fixture
 from dandy_lib.datatypes.tuples import MixableNamedTuple
 
 
@@ -22,7 +22,7 @@ class BaseClass(MixableNamedTuple, RootClass):  # type: ignore[misc, valid-type]
     bar: str = ""
 
 
-def test_mixin_tuples(subtests) -> None:
+def test_mixin_tuples(subtests: Subtests) -> None:
     # """
 
     class TestClass(MixableNamedTuple, BaseClass):  # type: ignore[misc, valid-type]
@@ -106,7 +106,7 @@ def test_classvar_override() -> None:
     assert to.bar == "2"
 
 
-def test_methods() -> None:
+def test_methods(subtests: Subtests) -> None:
     class HasMethod(MixableNamedTuple):  # type: ignore[misc, valid-type]
         a: int
         b: str
@@ -117,13 +117,83 @@ def test_methods() -> None:
         def bar(self, baz: int) -> int:
             return baz * self.a
 
-    hm = HasMethod(1, "two")
-    assert hm.foo() == "1 - two"
-    assert hm.bar(3) == 3
+        # Any, because other things below will override with non-strings
+        def boop(self) -> Any:
+            return self.a * self.b
 
-    class MethodInherit(MixableNamedTuple, HasMethod):  # type: ignore[misc, valid-type]
-        d: float = 3.3333
+    with subtests.test("Basic, not inherited"):
+        hm = HasMethod(2, "two")
+        assert hm.foo() == "2 - two"
+        assert hm.bar(3) == 6
+        assert hm.boop() == "twotwo"
 
-    mi = MethodInherit(3, "four")
-    assert mi.foo() == "3 - four"
-    assert mi.bar(3) == 9
+    with subtests.test("Inherits only from MixableNamedTuple"):
+
+        class MethodInherit(MixableNamedTuple, HasMethod):  # type: ignore[misc, valid-type]
+            d: float = 3.3333
+
+        mi = MethodInherit(3, "four")
+        assert mi.foo() == "3 - four"
+        assert mi.bar(3) == 9
+
+    with subtests.test("Inherits from non-mixable namedtuple"):
+
+        class NTClass(NamedTuple):
+            a: int
+            b: float
+
+            def meep(self) -> float:
+                return self.a * self.b
+
+        class NTInherit(MixableNamedTuple, NTClass):  # type: ignore[misc, valid-type]
+            c: str = "morp"
+
+        nti = NTInherit(3, 2.2)
+        assert nti.c == "morp"
+        assert approx(6.6) == nti.meep()
+
+    # Disabling til this fxnality is built, if it's even possible
+    """with subtests.test("Inherits from non-namedtuple tuple subclass"):
+
+        class SimpleClass(tuple):
+            def meep(self) -> str:
+                val: float = 1.0
+                leftover: list[str] = []
+                for sv in self:
+                    try:
+                        val *= sv
+                    except TypeError:
+                        leftover.append(str(sv))
+                return f"{val} - {';'.join(leftover)}"
+
+        class SimpleInherit(MixableNamedTuple, SimpleClass):
+            a: int = 3
+            b: float = 2.5
+            c: str = "boop"
+            d: None = None
+
+        si = SimpleInherit()
+        assert si.meep() == "7.5 - boop;None"
+
+    with subtests.test("Inherits from class inheriting from object"):
+
+            class SimpleClass:
+                def meep(self) -> str:
+                    val: float = 1.0
+                    leftover: list[str] = []
+                    for sv in self:
+                        try:
+                            val *= sv
+                        except TypeError:
+                            leftover.append(str(sv))
+                    return f"{val} - {';'.join(leftover)}"
+
+            class SimpleInherit(MixableNamedTuple, SimpleClass):
+                a: int = 3
+                b: float = 2.5
+                c: str = "boop"
+                d: None = None
+
+            si = SimpleInherit()
+            assert si.meep() == "7.5 - boop;None"
+    """

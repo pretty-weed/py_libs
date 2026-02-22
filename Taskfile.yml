@@ -29,9 +29,9 @@ tasks:
 
   debug:
     vars:
-      ENV: '-e {{ .CLI_ARGS | default "313-debug,314-debug" }}'
+      env: '-e {{ .ENV | default "313-debug,314-debug" }}'
     cmds:
-      - tox  {{ .ENV }} -- --pdb
+      - tox {{ .env }} -- {{ .CLI_ARGS }} --pdb
 
   type-check:
     aliases: ["type", "typing"]
