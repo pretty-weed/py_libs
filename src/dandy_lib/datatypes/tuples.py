@@ -1,5 +1,8 @@
 """
 Ain't exactly great practice, but kinda fuckin around with this.
+
+What I should actually do is make it so that fields can't be overridden except
+to provide defaults. food for thought.
 """
 
 from collections import namedtuple
@@ -97,7 +100,8 @@ def _get_params_from_bases(bases: list[type] | None) -> dict[str, Parameter]:
         # Ignore is for type checker thinking base.__annotate__ is None
         try:
             annotations: dict[str, type] = base.__annotate__(Format.VALUE)  # type: ignore[arg-type, attr-defined, misc]
-        except AttributeError as exc:
+        # TypeError if base.__annotate__ is None
+        except (AttributeError, TypeError) as exc:
             # python3.13 and earlier will hit this
             annotations = copy(base.__annotations__)
         for pname, ptype in annotations.items():  # type: ignore[misc]
@@ -216,7 +220,25 @@ class MixinableNamedTupleMeta(NamedTupleMeta):
                 return deepcopy(annotations)
 
             ns[ANNOTATE_FUNC] = annotate
-        return super().__new__(cls, typename, bases, ns)
+        res = super().__new__(cls, typename, bases, ns)
+        # Re-add bases, so that mixin methods can be used
+        bases_to_add: tuple = tuple[type, ...](
+            base
+            for base in ns["__orig_bases__"]
+            if base not in res.__bases__ and base is not MixableNamedTuple
+        )
+        try:
+            res.__bases__ = bases_to_add + res.__bases__
+        except TypeError:
+            res.__mro__ = (
+                (res.__mro__[0],)
+                + tuple(
+                    base for base in bases_to_add if base not in res.__mro__
+                )
+                + res.__mro__[1:]
+            )
+
+        return res
 
 
 MixableNamedTupleBase: NamedTupleMeta = type.__new__(
