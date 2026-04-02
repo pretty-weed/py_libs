@@ -1,15 +1,15 @@
 from functools import lru_cache
 from typing import NamedTuple
 
-from .numeric import NonNegInt, NonNegFloat
+from .numeric import NonNegInt, NonNegFloat, NonNegNum
 
 
 class Size(NamedTuple):
-    width: NonNegInt | NonNegFloat
-    height: NonNegInt | NonNegFloat
+    width: NonNegNum
+    height: NonNegNum
 
     @classmethod
-    def factory(cls, *in_vals: NonNegInt | NonNegFloat):
+    def factory(cls, *in_vals: NonNegNum):
         if len(in_vals) == 1:
             return cls(in_vals[0], in_vals[0])
         return cls(*in_vals)
