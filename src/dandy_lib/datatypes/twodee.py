@@ -57,12 +57,12 @@ class Rect(NamedTuple):
     @property
     @lru_cache
     def left(self) -> Number:
-        return self.y
+        return self.x
 
     @property
     @lru_cache
     def right(self) -> Number:
-        return self.y + self.width
+        return self.x + self.width
 
     @property
     @lru_cache
