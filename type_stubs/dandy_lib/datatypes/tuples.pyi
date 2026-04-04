@@ -1,8 +1,7 @@
-from _typeshed import Incomplete
 from collections import namedtuple as namedtuple
 from collections.abc import Iterable as Iterable
 from enum import IntEnum
-from typing import Any, Callable, NamedTuple, NamedTupleMeta, Self
+from typing import Any, Callable, NamedTupleMeta, Self
 
 def get_annotate_from_class_namespace(obj: dict[str, Any]) -> Any: ...
 def call_annotate_function(
@@ -31,4 +30,4 @@ def MixableNamedTuple(
     bases: list[type] | None = None,
     /,
     **kwargs: Any,
-) -> NamedTuple: ...
+) -> type[tuple]: ...
