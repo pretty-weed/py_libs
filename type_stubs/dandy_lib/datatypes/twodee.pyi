@@ -1,4 +1,3 @@
-from turtle import heading, width
 from .numeric import (
     NonNegFloat as NonNegFloat,
     NonNegInt as NonNegInt,
@@ -31,18 +30,26 @@ class Rect(NamedTuple):
 
     def __getattr__(self, name: str) -> Number: ...
     @property
+    @lru_cache
     def top(self) -> Number: ...
     @property
+    @lru_cache
     def bottom(self) -> Number: ...
     @property
+    @lru_cache
     def left(self) -> Number: ...
     @property
+    @lru_cache
     def right(self) -> Number: ...
     @property
+    @lru_cache
     def top_left(self) -> Coord: ...
     @property
+    @lru_cache
     def bottom_left(self) -> Coord: ...
     @property
+    @lru_cache
     def top_right(self) -> Coord: ...
     @property
+    @lru_cache
     def bottom_right(self) -> Coord: ...
