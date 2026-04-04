@@ -21,6 +21,7 @@ tasks:
       STUB_DIR: type_stubs
     cmds:
       - stubgen --package dandy_lib --output {{ .STUB_DIR }} {{ .CLI_ARGS }}
+      - black {{ .STUB_DIR }}
 
   test:
     cmds:
