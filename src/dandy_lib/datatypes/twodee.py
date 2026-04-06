@@ -2,9 +2,10 @@ from functools import lru_cache
 from typing import NamedTuple
 
 from .numeric import NonNegInt, NonNegFloat, NonNegNum
+from .tuples import MixableNamedTuple
 
 
-class Size(NamedTuple):
+class Size(MixableNamedTuple):  # type: ignore[misc, valid-type]
     width: NonNegNum
     height: NonNegNum
 
@@ -27,7 +28,7 @@ class Coord(Vector):
     pass
 
 
-class Rect(NamedTuple):
+class Rect(MixableNamedTuple):  # type: ignore[misc, valid-type]
     position: Coord
     size: Size
 
