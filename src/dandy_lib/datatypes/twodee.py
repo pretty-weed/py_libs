@@ -24,8 +24,14 @@ class Vector(NamedTuple):
     y: Number
 
 
+ZERO_VEC: Vector = Vector(0, 0)
+
+
 class Coord(Vector):
     pass
+
+
+ZERO_COORD: Coord = Coord(0, 0)
 
 
 class Rect(MixableNamedTuple):  # type: ignore[misc, valid-type]
