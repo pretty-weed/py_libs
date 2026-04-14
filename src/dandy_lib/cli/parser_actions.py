@@ -1,11 +1,12 @@
-from argparse import ArgumentError, ArgumentParser, Action
-
-from numbers import Number
-from typing import Any, NamedTuple, Protocol
+from argparse import Action, ArgumentError, ArgumentParser
+from typing import Any, NamedTuple, Protocol, TypeAlias
 
 
 class Named(Protocol):
     name: str
+
+
+Number: TypeAlias = int | float
 
 
 class Range(NamedTuple):
@@ -34,7 +35,7 @@ class Range(NamedTuple):
                 case "+":
                     start = 1
                     end = float("inf")
-                case Number():
+                case int() | str():
                     end = start
                     arg = "+"
                 case _:
@@ -44,7 +45,7 @@ class Range(NamedTuple):
             arg = "+"
         return cls(start, end, arg, inclusive=inclusive)
 
-    def __contains__(self, other: Number, inclusive=True) -> bool:
+    def __contains__(self, other: Number, inclusive=True) -> bool:  # type: ignore[override]
         if inclusive:
             return self.start <= other <= self.end
         return self.start < other < self.end
@@ -61,7 +62,10 @@ class NargsRangeAction(Action):
 
     def __init__(self, option_strings, dest, nargs=None, **kwargs):
         if nargs is not None:
-            self.n_range = Range.new(*nargs)
+            try:
+                self.n_range = Range.new(*nargs)
+            except TypeError:
+                self.n_range = Range.new(nargs)
             nargs = self.n_range.arg
         else:
             self.n_range = None
@@ -69,6 +73,11 @@ class NargsRangeAction(Action):
 
     def __call__(self, parser, namespace, values, option_string=None):
 
+        match values:
+            case list() | tuple():
+                pass
+            case _:
+                values = [values]
         if self.n_range is not None and not len(values) in self.n_range:
             help_name = (
                 option_string
@@ -83,12 +92,12 @@ class NargsRangeAction(Action):
 
 
 class ConditionalFailingAction(Action):
-    EXCEPTIONS_TO_CATCH = (NotImplementedError,)
+    EXCEPTIONS_TO_CATCH: tuple[type[Exception], ...] = (NotImplementedError,)
     FORCE_DEST = "force"
     FORCE_FLAG = "--force"
     FORCE_FLAGS = frozenset(["--force"])
 
-    _force_parsers = {}
+    _force_parsers: dict[str, ArgumentParser] = {}
 
     def __init__(self, option_strings, dest, nargs=None, **kwargs):
         super().__init__(option_strings, dest, nargs=nargs, **kwargs)
@@ -117,8 +126,8 @@ class ConditionalFailingAction(Action):
     ) -> None:
         raise NotImplementedError()
 
-    def __call__(self, parser, namespace, values, option_string=None):
-        single_result: bool = None
+    def __call__(self, parser, namespace, values, option_string=None) -> None:
+        single_result: bool | None = None
         try:
             results = [
                 self._get_val(parser, namespace, value, option_string)

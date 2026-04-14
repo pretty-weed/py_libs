@@ -1,4 +1,5 @@
-from pathlib import Path, PurePath
+from pathlib import Path
+from pathlib import PurePath
 
 
 def path_nonexistent_parent_exists(in_val: str) -> PurePath:

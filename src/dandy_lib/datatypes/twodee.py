@@ -1,19 +1,92 @@
-from dataclasses import dataclass
-from typing import Iterator
+from functools import lru_cache
+from typing import NamedTuple
 
-from .numeric import NonNegInt
+from .numeric import NonNegInt, NonNegFloat, NonNegNum
+from .tuples import MixableNamedTuple
 
 
-@dataclass(unsafe_hash=True)
-class Size:
-    width: NonNegInt
-    height: NonNegInt
+class Size(MixableNamedTuple):  # type: ignore[misc, valid-type]
+    width: NonNegNum
+    height: NonNegNum
 
     @classmethod
-    def factory(cls, *in_vals):
+    def factory(cls, *in_vals: NonNegNum):
         if len(in_vals) == 1:
             return cls(in_vals[0], in_vals[0])
         return cls(*in_vals)
 
-    def __iter__(self) -> Iterator[int]:
-        yield from [self.width, self.height]
+
+type Number = int | float
+
+
+class Vector(NamedTuple):
+    x: Number
+    y: Number
+
+
+ZERO_VEC: Vector = Vector(0, 0)
+
+
+class Coord(Vector):
+    pass
+
+
+ZERO_COORD: Coord = Coord(0, 0)
+
+
+class Rect(MixableNamedTuple):  # type: ignore[misc, valid-type]
+    position: Coord
+    size: Size
+
+    def __getattr__(self, name: str) -> Number:
+        """
+        Automagically get child element attributes (e.g. width, x)
+        so frickin lazy
+        """
+        for element in self:
+            try:
+                return getattr(element, name)
+            except AttributeError:
+                pass
+
+        raise AttributeError(f"'{self}' object has no attribute '{name}'.")
+
+    @property
+    @lru_cache
+    def top(self) -> Number:
+        return self.y
+
+    @property
+    @lru_cache
+    def bottom(self) -> Number:
+        return self.y + self.height
+
+    @property
+    @lru_cache
+    def left(self) -> Number:
+        return self.x
+
+    @property
+    @lru_cache
+    def right(self) -> Number:
+        return self.x + self.width
+
+    @property
+    @lru_cache
+    def top_left(self) -> Coord:
+        return Coord(self.x, self.y)
+
+    @property
+    @lru_cache
+    def bottom_left(self) -> Coord:
+        return Coord(self.bottom, self.right)
+
+    @property
+    @lru_cache
+    def top_right(self) -> Coord:
+        return Coord(self.x, self.right)
+
+    @property
+    @lru_cache
+    def bottom_right(self) -> Coord:
+        return Coord(self.bottom, self.right)

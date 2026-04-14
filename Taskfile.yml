@@ -1,0 +1,40 @@
+version: "3"
+
+tasks:
+  clean:
+    run: once
+    cmds:
+      - rm -rf .tox .task .pytest_cache .mypy_cache
+  stubs-deps:
+    internal: true
+    sources:
+      - pyproject.toml
+    cmds:
+      - pip install '.[type]'
+
+  generate-stubs:
+    deps:
+      - stubs-deps
+    aliases:
+      - stubs
+    vars:
+      STUB_DIR: type_stubs
+    cmds:
+      - stubgen --package dandy_lib --output {{ .STUB_DIR }} {{ .CLI_ARGS }}
+      - black {{ .STUB_DIR }}
+
+  test:
+    cmds:
+      - tox -- {{ .CLI_ARGS }}
+
+
+  debug:
+    vars:
+      env: '-e {{ .ENV | default "313-debug,314-debug" }}'
+    cmds:
+      - tox {{ .env }} -- {{ .CLI_ARGS }} --pdb
+
+  type-check:
+    aliases: ["type", "typing"]
+    cmds:
+      - tox -e type -- {{ .CLI_ARGS }}
