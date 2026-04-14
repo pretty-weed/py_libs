@@ -23,11 +23,6 @@ class Coord(Vector): ...
 class Rect(NamedTuple):
     position: Coord
     size: Size
-    x: Number
-    y: Number
-    width: Number
-    height: Number
-
     def __getattr__(self, name: str) -> Number: ...
     @property
     @lru_cache

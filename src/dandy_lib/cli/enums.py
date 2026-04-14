@@ -6,10 +6,14 @@ import enum
 from argparse import Action
 from inspect import isclass
 from typing import Any
-from typing import Callable, Optional, Type
+from typing import Any, Callable, Optional, Type, TYPE_CHECKING
 
 
-class ChoiceEnum(enum.Enum):
+class ChoiceEnumMixin:
+    if TYPE_CHECKING:
+        _member_names_: list[str] = []
+        name: str = "foo"
+
     def __str__(self):
         return self.name
 
@@ -18,8 +22,10 @@ class ChoiceEnum(enum.Enum):
         return cls._member_names_
 
 
-class CallableChoiceEnum(ChoiceEnum):
+class CallableChoiceEnumMixin(ChoiceEnumMixin):
+    if TYPE_CHECKING:
 
+        def value(*args: Any, **kwargs: Any) -> Any: ...
     def __call__(self, *args, **kwargs):
         return self.value(*args, **kwargs)
 
@@ -34,28 +40,32 @@ class EnumAction(Action):
         const: Any = None,
         default: Any = None,
         # This redef is due to the interface of argparse
-        type: Optional[Type[ChoiceEnum] | Callable] = None,  # type: ignore[no-redef]
-        choices: Optional[Type[ChoiceEnum]] = None,
+        type: type[ChoiceEnumMixin] | Callable[..., Any] | None = None,  # type: ignore[no-redef]
+        choices: type[ChoiceEnumMixin] | None = None,
         required: bool = False,
         metavar: str | None = None,
     ):
-        self.enum_choices: Type[ChoiceEnum] | None = None
-
+        self.enum_choices: Type[ChoiceEnumMixin] | None = None
+        print("choices:")
+        print(choices)
+        print("type:")
+        print(type)
         match (choices, type):
             case (c, t) if c != None and t != None and c != t:
                 raise TypeError(
                     "If choices and type are both provided, they must be the same"
                 )
-            case (c, t) if issubclass(c, ChoiceEnum) and (t is None or t == c):  # type: ignore[arg-type]
+            case (c, t) if c is not None and issubclass(c, ChoiceEnumMixin) and (t is None or t == c):  # type: ignore[arg-type]
                 self.enum_choices = c
                 type = None
             case (c, t) if (
-                c is None and isclass(t) and issubclass(t, ChoiceEnum)  # type: ignore[assignment]
+                c is None and isclass(t) and issubclass(t, ChoiceEnumMixin)  # type: ignore[assignment]
             ):
                 self.enum_choices = t
                 type = None
 
         def type_fn(inval):
+            print(f"in type fn testing {inval}")
             try:
                 self.enum_choices[inval]
             except KeyError as exc:
