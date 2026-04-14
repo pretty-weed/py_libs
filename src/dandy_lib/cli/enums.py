@@ -2,17 +2,37 @@
 Use enums as choices or subparsers in parsers
 """
 
+from curses import meta
 import enum
 from argparse import Action
 from inspect import isclass
-from typing import Any
-from typing import Any, Callable, Optional, Type, TYPE_CHECKING
+from typing import (
+    Any,
+    Callable,
+    Optional,
+    Protocol,
+    _ProtocolMeta,
+    Type,
+    TYPE_CHECKING,
+)
 
 
-class ChoiceEnumMixin:
-    if TYPE_CHECKING:
-        _member_names_: list[str] = []
-        name: str = "foo"
+class ChoiceEnumMeta(enum.EnumMeta, _ProtocolMeta):
+    pass
+
+
+class _EnumMixinProtocol(Protocol):
+    @property
+    def name(self) -> str: ...
+
+    _member_names_: list[str]
+
+
+class _CallableEnumMixinProtocol(_EnumMixinProtocol):
+    value: Callable[..., Any]
+
+
+class ChoiceEnumMixin(_EnumMixinProtocol):
 
     def __str__(self):
         return self.name
@@ -22,10 +42,7 @@ class ChoiceEnumMixin:
         return cls._member_names_
 
 
-class CallableChoiceEnumMixin(ChoiceEnumMixin):
-    if TYPE_CHECKING:
-
-        def value(*args: Any, **kwargs: Any) -> Any: ...
+class CallableChoiceEnumMixin(_CallableEnumMixinProtocol, ChoiceEnumMixin):
     def __call__(self, *args, **kwargs):
         return self.value(*args, **kwargs)
 
@@ -46,10 +63,7 @@ class EnumAction(Action):
         metavar: str | None = None,
     ):
         self.enum_choices: Type[ChoiceEnumMixin] | None = None
-        print("choices:")
-        print(choices)
-        print("type:")
-        print(type)
+
         match (choices, type):
             case (c, t) if c != None and t != None and c != t:
                 raise TypeError(
@@ -65,7 +79,6 @@ class EnumAction(Action):
                 type = None
 
         def type_fn(inval):
-            print(f"in type fn testing {inval}")
             try:
                 self.enum_choices[inval]
             except KeyError as exc:
@@ -77,7 +90,7 @@ class EnumAction(Action):
         if self.enum_choices is not None:
             type = type_fn
             choices = self.enum_choices.choices()  # type: ignore[assignment]
-
+        print(f"in action: nargs=`{nargs}`, metavar=`{metavar}`")
         super().__init__(
             option_strings=option_strings,
             dest=dest,

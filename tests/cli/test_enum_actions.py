@@ -8,6 +8,7 @@ from unittest import mock
 import pytest
 from dandy_lib.cli.enums import (
     CallableChoiceEnumMixin,
+    ChoiceEnumMeta,
     ChoiceEnumMixin,
     EnumAction,
 )
@@ -18,7 +19,7 @@ def subtest(subtests: pytest.Subtests):
     yield subtests
 
 
-class FuncChoices(CallableChoiceEnumMixin, enum.Enum):
+class FuncChoices(CallableChoiceEnumMixin, enum.Enum, metaclass=ChoiceEnumMeta):
 
     @enum.member
     def M(inval: str) -> int:
@@ -29,7 +30,7 @@ class FuncChoices(CallableChoiceEnumMixin, enum.Enum):
         return inval + inval
 
 
-class IntChoices(ChoiceEnumMixin, enum.IntEnum):
+class IntChoices(ChoiceEnumMixin, enum.IntEnum, metaclass=ChoiceEnumMeta):
     won = 1
     two = 2
     tree = 3
@@ -42,7 +43,9 @@ class CustomChoicesType:
         self.c = c
 
 
-class CustomChoices(CustomChoicesType, ChoiceEnumMixin, enum.Enum):
+class CustomChoices(
+    CustomChoicesType, ChoiceEnumMixin, enum.Enum, metaclass=ChoiceEnumMeta
+):
     A = (1, 2)
     B = (3, 4, "cheese")
 
@@ -51,6 +54,9 @@ class CustomChoicesIntType(int):
     def __new__(self, val, foo=2, bar=3):
         return super().__new__(self, val)
 
+    def __str__(self) -> str:
+        return f"<CustomChoicesIntType{int(self)}>"
+
     def __init__(self, val, foo=2, bar=3) -> None:
         self.foo = foo
         self.bar = bar
@@ -58,7 +64,12 @@ class CustomChoicesIntType(int):
         super().__init__()
 
 
-class CustomChoicesInt(CustomChoicesIntType, ChoiceEnumMixin, enum.Enum):
+class CustomChoicesInt(
+    ChoiceEnumMixin,
+    CustomChoicesIntType,
+    enum.Enum,
+    metaclass=ChoiceEnumMeta,
+):
     A = (1, 2)
     B = (3, 4, "cheese")
 
@@ -81,7 +92,7 @@ def test_stringsAndLiteralNumber(
     subtest: pytest.Subtests, parser_factory: Callable[..., ArgumentParser]
 ):
     parser = parser_factory()
-    parser.add_argument("--intval", choices=IntChoices, type=int)
+    parser.add_argument("--intval", choices=IntChoices, action=EnumAction)
     parser.add_argument(
         "--func",
         action=EnumAction,
@@ -91,9 +102,8 @@ def test_stringsAndLiteralNumber(
         type=FuncChoices,
     )
     with subtest.test("simple int enum"):
-        with pytest.raises(ArgumentError):
-            parsed = parser.parse_args(["--intval", "won"])
-            assert parsed.intval == 1
+        parsed = parser.parse_args(["--intval", "won"])
+        assert parsed.intval == 1
 
     with subtest.test("incorrect intenum fails"):
         with pytest.raises(ArgumentError):
@@ -158,7 +168,12 @@ def test_custom_class(
 
         with pytest.raises(TypeError):
 
-            class BadChoices(CustomChoicesType, ChoiceEnumMixin, enum.Enum):
+            class BadChoices(
+                CustomChoicesType,
+                ChoiceEnumMixin,
+                enum.Enum,
+                metaclass=ChoiceEnumMeta,
+            ):
                 A = (1, 2)
                 B = (3, 4, "cheese")
                 C = (None,)
