@@ -1,24 +1,24 @@
 import argparse
 import enum
 
-from dandy_lib.cli.enums import CallableChoiceEnum
-from dandy_lib.cli.enums import ChoiceEnum
+from dandy_lib.cli.enums import CallableChoiceEnumMixin
+from dandy_lib.cli.enums import ChoiceEnumMixin
 from dandy_lib.cli.enums import EnumAction
 
 
 def example():
 
-    class Choices(ChoiceEnum, enum.StrEnum):
+    class Choices(ChoiceEnumMixin, enum.StrEnum):
         A = "ay"
         B = "bee"
         C = "cee"
 
-    class IntChoices(ChoiceEnum, enum.IntEnum):
+    class IntChoices(ChoiceEnumMixin, enum.IntEnum):
         won = 1
         two = 2
         tree = 3
 
-    class FuncChoices(CallableChoiceEnum):
+    class FuncChoices(CallableChoiceEnumMixin):
 
         @enum.member
         def M(inval: str) -> int:
