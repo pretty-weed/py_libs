@@ -22,8 +22,6 @@ class ChoiceEnumMeta(enum.EnumMeta, _ProtocolMeta):
 
 
 class _EnumMixinProtocol(Protocol):
-    @property
-    def name(self) -> str: ...
 
     _member_names_: list[str]
 
@@ -33,7 +31,6 @@ class _CallableEnumMixinProtocol(_EnumMixinProtocol):
 
 
 class ChoiceEnumMixin(_EnumMixinProtocol):
-
     def __str__(self):
         return self.name
 
@@ -42,7 +39,7 @@ class ChoiceEnumMixin(_EnumMixinProtocol):
         return cls._member_names_
 
 
-class CallableChoiceEnumMixin(_CallableEnumMixinProtocol, ChoiceEnumMixin):
+class CallableChoiceEnumMixin(ChoiceEnumMixin, _CallableEnumMixinProtocol):
     def __call__(self, *args, **kwargs):
         return self.value(*args, **kwargs)
 
@@ -90,7 +87,6 @@ class EnumAction(Action):
         if self.enum_choices is not None:
             type = type_fn
             choices = self.enum_choices.choices()  # type: ignore[assignment]
-        print(f"in action: nargs=`{nargs}`, metavar=`{metavar}`")
         super().__init__(
             option_strings=option_strings,
             dest=dest,
