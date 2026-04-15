@@ -16,7 +16,7 @@ class Range(NamedTuple):
     inclusive: bool = True
 
     def is_range(self) -> bool:
-        return self.start == self.end
+        return self.start != self.end
 
     @classmethod
     def new(cls, start, end=None, inclusive=True):
@@ -40,7 +40,7 @@ class Range(NamedTuple):
                     arg = "+"
                 case _:
                     raise ValueError(f"Invalid value for a range: {start}")
-            end = start
+
         else:
             arg = "+"
         return cls(start, end, arg, inclusive=inclusive)

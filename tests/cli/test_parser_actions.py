@@ -26,7 +26,9 @@ class SampleAction(pa.NargsRangeAction):
         option_string: str | None = None,
     ):
         super().__call__(parser, namespace, values, option_string=option_string)
-        if option_string and option_string.startswith("--not_"):
+        if option_string and any(
+            option_string.startswith(prefix) for prefix in ["--not_", "--rev_"]
+        ):
             match values:
                 case list() | tuple() | str():
                     values = values.__class__(reversed(values))
@@ -86,22 +88,25 @@ class TestNargsRange(unittest.TestCase):
 
 class Case(NamedTuple):
     nargs: str | int
-    start: int
-    end: int | float
+    minArgs: int
+    maxArgs: int | float
+
+    def __str__(self) -> str:
+        return f"<Test Case: nargs: {self.nargs}, start: {self.minArgs}, end: {self.maxArgs}>"
 
 
 def test_stringsAndLiteralNumber(subtests: pytest.Subtests):
     intstrs = "0123456789"
-    cases: list[Case] = list(  # type: ignore[call-overload]
+    cases: list[Case] = [  # type: ignore[call-overload]
         Case("?", 0, 1),
         Case("*", 0, float("inf")),
         Case("+", 1, float("inf")),
         Case(3, 3, 3),
-    )
+    ]
 
-    for nargs, start, end in cases:
-
-        with subtests.test(str(nargs), nvars=nargs):
+    for case in cases:
+        nargs, start, end = case
+        with subtests.test(str(case)):
             parser = ArgumentParser(exit_on_error=False)
             parser.add_argument(
                 "--foo", nargs=nargs, action=SampleAction, type=int  # type: ignore
@@ -118,7 +123,7 @@ def test_stringsAndLiteralNumber(subtests: pytest.Subtests):
                 # with pytest.raises(argparse.ArgumentError) as exc_info:
                 with subtests.test("1 arg fewer than min fails", nargs=nargs):
                     with pytest.raises(ArgumentError):
-                        vars = ["--foo"] + list(intstrs[:start])
+                        vars = ["--foo"] + list(intstrs[: start - 1])
                         parser.parse_args(vars)
 
                 with subtests.test("min and max num of args pass", nargs=nargs):
@@ -127,11 +132,11 @@ def test_stringsAndLiteralNumber(subtests: pytest.Subtests):
             if end < float("inf"):
                 with subtests.test("too many args fails", nargs=nargs):
                     with pytest.raises(ArgumentError):
-                        vars = ["--foo"] + list(intstrs[: start : int(end) + 1])
+                        vars = ["--foo"] + list(intstrs[: int(end) + 1])
                         parser.parse_args(vars)
 
                 with subtests.test("max args passes", nargs=nargs):
-                    parser.parse_args(["--foo", *intstrs[start : int(end)]])
+                    parser.parse_args(["--foo", *intstrs[: int(end)]])
 
 
 def test_working():
