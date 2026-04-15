@@ -1,17 +1,12 @@
-from argparse import Action
-from argparse import ArgumentError
-from argparse import ArgumentParser
-from typing import Any
-from typing import NamedTuple
-from typing import Protocol
-from typing import Type
-from typing import TypeAlias
-
-Number: TypeAlias = int | float
+from argparse import Action, ArgumentError, ArgumentParser
+from typing import Any, NamedTuple, Protocol, TypeAlias
 
 
 class Named(Protocol):
     name: str
+
+
+Number: TypeAlias = int | float
 
 
 class Range(NamedTuple):
@@ -21,7 +16,7 @@ class Range(NamedTuple):
     inclusive: bool = True
 
     def is_range(self) -> bool:
-        return self.start == self.end
+        return self.start != self.end
 
     @classmethod
     def new(cls, start, end=None, inclusive=True):
@@ -40,7 +35,7 @@ class Range(NamedTuple):
                 case "+":
                     start = 1
                     end = float("inf")
-                case int() | number():
+                case int() | str():
                     end = start
                     arg = "+"
                 case _:
@@ -50,9 +45,10 @@ class Range(NamedTuple):
             arg = "+"
         return cls(start, end, arg, inclusive=inclusive)
 
-    # ignore[override] because superclass is object: object
-    def __contains__(self, object: Number) -> bool:  # type: ignore[override]
-        return self.start <= object <= self.end
+    def __contains__(self, other: Number, inclusive=True) -> bool:  # type: ignore[override]
+        if inclusive:
+            return self.start <= other <= self.end
+        return self.start < other < self.end
 
 
 class NargsRangeAction(Action):
@@ -96,7 +92,7 @@ class NargsRangeAction(Action):
 
 
 class ConditionalFailingAction(Action):
-    EXCEPTIONS_TO_CATCH: tuple[Type[Exception], ...] = (NotImplementedError,)
+    EXCEPTIONS_TO_CATCH: tuple[type[Exception], ...] = (NotImplementedError,)
     FORCE_DEST = "force"
     FORCE_FLAG = "--force"
     FORCE_FLAGS = frozenset(["--force"])

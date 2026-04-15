@@ -48,28 +48,26 @@ env_list = clean, 3{.13,.14,.15}{,-type,-lint}, type, lint, report
 
 [testenv]
 description = "Run test under {base_python}"
-extras =  pytest
-commands = python -m pytest --cov=dandy_lib --cov-append --cov-report=term-missing {posargs: -vv}
-
-[testenv:{,3.13-,3.14-,3.15}debug]
-extras = pytest
+extras =
+    pytest
+setenv=
+    py{27,36,35,34,33}: COVERAGE_FILE={envdir}/.coverage
 commands =
-    python -m pytest --pdb {posargs}
+    pytest {posargs:-vv}
 
+[tool.tox.env_run_base.set_env]
 
-[testenv:clean]
-extras = cov
+[tool.tox.env.pyenv]
+requires = ["virtualenv-pyenv"]
 commands =
-    coverage erase
-
-[testenv:report]
-extras = cov
-commands = coverage report --fail-under=50
-
+    "pytest {posargs:-vv}
+[tool.tox.env.pyenv.set_env]
+VIRTUALENV_DISCOVERY = "pyenv"
 
 [testenv:{,3.13-,3.14-,3.15-}type]
 description = "run type check on code base"
-extras = type
+extras =
+    type
     pytest
     lint
 commands =
@@ -79,6 +77,20 @@ commands =
 [tool.tox.env.type.set_env]
 MYPATH = "type_stubs"
 
+[testenv:3.{13,14,15}]
+allowlist_externals = env
+setenv =
+    COVERAGE_FILE = {envdir}/.coverage
+commands =
+    env
+    pytest --cov=dandy_lib --cov-append --cov-report=term-missing {posargs:-vv}
+
+
+[testenv:{,3.13-,3.14-,3.15-}debug]
+extras = pytest
+commands =
+    python -m pytest --pdb {posargs}
+
 
 [testenv:{,3.13-,3.14-,3.15-}lint]
 description = "Run linting on code base"
@@ -86,7 +98,26 @@ extras = lint
 commands =
     black src
     black tests
+
+[testenv:clean]
+extras = cov
+commands =
+    coverage erase
+
+[testenv:report]
+deps = coverage
+skip_install = true
+allowlist_externals = bash
+commands =
+    bash -c 'coverage combine {toxworkdir}/*/.coverage'
+    coverage report --fail-under=50
+
 """
+[tool.coverage.paths]
+source = [
+    "src/",
+    ".tox/*/lib/python*/site-packages/",
+    ]
 
 [tool.setuptools.package-data]
 dandy_lib = ["py.typed"]
