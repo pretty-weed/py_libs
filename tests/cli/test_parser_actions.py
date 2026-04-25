@@ -1,5 +1,6 @@
 from argparse import ArgumentError, ArgumentParser, Namespace
-from typing import Any, Literal, NamedTuple
+from collections import UserList
+from typing import Any, Literal, NamedTuple, Type
 import unittest
 from unittest import mock
 
@@ -112,7 +113,7 @@ class TestNargsRangeAppend(unittest.TestCase):
 
         parser.add_argument(
             "--rangeme",
-            nargs=(3, 5),
+            nargs=(3, 5),  # type: ignore[arg-type]
             action=NargsRangeAppendAction,
             type=int,
         )
@@ -135,6 +136,74 @@ class TestNargsRangeAppend(unittest.TestCase):
                 ]
             )
             self.assertEqual(parsed.rangeme, [[4, 5, 6, 7], [8, 9, 10, 11]])
+
+    def test_append_type(self) -> None:
+        with self.subTest("List subclass"):
+            parser = ArgumentParser(exit_on_error=False)
+
+            class CustomList(UserList):
+                pass
+
+            _ = parser.add_argument("--foo")
+            _ = parser.add_argument(
+                "--rng",
+                nargs=(2, 3),  # type: ignore[arg-type]
+                action=NargsRangeAppendAction,
+                type=float,
+                append_type=CustomList,
+            )
+            parsed = parser.parse_args(
+                [
+                    "--rng",
+                    "3.4",
+                    "5.6",
+                    "--foo",
+                    "a",
+                    "--rng",
+                    "6.8",
+                    "7.2",
+                    "1.3",
+                ]
+            )
+            self.assertListEqual(
+                parsed.rng,
+                [CustomList([3.4, 5.6]), CustomList([6.8, 7.2, 1.3])],
+            )
+        with self.subTest("Object with positional args"):
+            parser = ArgumentParser(exit_on_error=False)
+
+            class CustomObj:
+                def __init__(self, a: float, b: float, c: float = 1.0) -> None:
+                    self.a = a
+                    self.b = b
+                    self.c = c
+
+                def __str__(self) -> str:
+                    return f"<CustomObj: {self.a},{self.b}{self.c}>"
+
+                def __eq__(self, other: object) -> bool:
+                    try:
+                        return (
+                            self.a == other.a  # type: ignore[attr-defined]
+                            and self.b == other.b  # type: ignore[attr-defined]
+                            and self.c == other.c  # type: ignore[attr-defined]
+                        )
+                    except AttributeError:
+                        raise TypeError(
+                            f"Cannot compare equality of {type(self)} and {type(other)}"
+                        )
+
+            _ = parser.add_argument("--rng", nargs=(2, 3), action=NargsRangeAppendAction, type=float, append_type=CustomObj)  # type: ignore[arg-type]
+            parsed = parser.parse_args(
+                ["--rng", "1.2", "2.3", "--rng", "3.4", "4.5", "5.6"]
+            )
+            self.assertListEqual(
+                parsed.rng,
+                [
+                    CustomObj(a=1.2, b=2.3, c=1.0),
+                    CustomObj(a=3.4, b=4.5, c=5.6),
+                ],
+            )
 
 
 class Case(NamedTuple):

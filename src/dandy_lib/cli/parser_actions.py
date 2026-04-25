@@ -1,6 +1,15 @@
 from argparse import Action, ArgumentError, ArgumentParser
+from inspect import isclass, signature
 from os import name
-from typing import Any, NamedTuple, Protocol, TypeAlias
+from typing import (
+    Any,
+    Callable,
+    Collection,
+    NamedTuple,
+    Protocol,
+    Sequence,
+    TypeAlias,
+)
 from webbrowser import get
 
 
@@ -62,7 +71,14 @@ class NargsRangeAction(Action):
     not a mixin.
     """
 
-    def __init__(self, option_strings, dest, nargs=None, **kwargs):
+    def __init__(
+        self,
+        option_strings,
+        dest,
+        nargs=None,
+        append_type: Callable = list,
+        **kwargs,
+    ):
         if nargs is not None:
             try:
                 self.n_range = Range.new(*nargs)
@@ -71,6 +87,7 @@ class NargsRangeAction(Action):
             nargs = self.n_range.arg
         else:
             self.n_range = None
+        self.append_type: Callable[..., Any] = append_type
         super().__init__(option_strings, dest, nargs, **kwargs)
 
     def __call__(self, parser, namespace, values, option_string=None) -> None:
@@ -78,7 +95,9 @@ class NargsRangeAction(Action):
         # If the above has not failed...
         setattr(namespace, self.dest, values)
 
-    def _validate_values(self, values, option_string=None) -> list:
+    def _validate_values(
+        self, values: Sequence[Any], option_string=None
+    ) -> Any:
 
         match values:
             case list() | tuple():
@@ -98,8 +117,23 @@ class NargsRangeAction(Action):
             )
         if self.type is not None:
             # MyPy thinks that self.type is a string for some reason
-            return [self.type(v) for v in values]  # type: ignore[operator]
-        return list(values)
+            return self._handle_append_type([self.type(v) for v in values])  # type: ignore[operator]
+        return self._handle_append_type(values)
+
+    def _handle_append_type(self, values: list[Any] | tuple[Any]) -> Collection:
+        # This doesn't handle all edge cases where
+        if (
+            isclass(self.append_type)
+            and issubclass(self.append_type, Collection)
+        ) or (
+            not isclass(self.append_type)
+            and issubclass(
+                signature(self.append_type).return_annotation, Collection
+            )
+        ):
+            return self.append_type(values)  # type: ignore[call-arg]
+        else:
+            return self.append_type(*values)
 
 
 class NargsRangeAppendAction(NargsRangeAction):
