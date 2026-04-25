@@ -1,11 +1,12 @@
 from _typeshed import Incomplete
 from argparse import Action
 from typing import NamedTuple, Protocol, TypeAlias
-
-Number: TypeAlias = int | float
+from webbrowser import get as get
 
 class Named(Protocol):
     name: str
+
+Number: TypeAlias = int | float
 
 class Range(NamedTuple):
     start: int
@@ -15,11 +16,16 @@ class Range(NamedTuple):
     def is_range(self) -> bool: ...
     @classmethod
     def new(cls, start, end=None, inclusive: bool = True): ...
-    def __contains__(self, object: Number) -> bool: ...
+    def __contains__(self, other: Number, inclusive: bool = True) -> bool: ...
 
 class NargsRangeAction(Action):
     n_range: Incomplete
     def __init__(self, option_strings, dest, nargs=None, **kwargs) -> None: ...
+    def __call__(
+        self, parser, namespace, values, option_string=None
+    ) -> None: ...
+
+class NargsRangeAppendAction(NargsRangeAction):
     def __call__(
         self, parser, namespace, values, option_string=None
     ) -> None: ...

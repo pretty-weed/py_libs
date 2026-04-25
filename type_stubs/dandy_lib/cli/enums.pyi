@@ -1,16 +1,26 @@
+import abc
 import enum
 from argparse import Action
-from typing import Any, Callable
+from curses import meta as meta
+from typing import Any, Callable, Protocol, _ProtocolMeta
 
-class ChoiceEnum(enum.Enum):
+class ChoiceEnumMeta(enum.EnumMeta, _ProtocolMeta): ...
+class _EnumMixinProtocol(Protocol): ...
+
+class _CallableEnumMixinProtocol(_EnumMixinProtocol, metaclass=abc.ABCMeta):
+    value: Callable[..., Any]
+
+class ChoiceEnumMixin(_EnumMixinProtocol, metaclass=abc.ABCMeta):
     @classmethod
     def choices(cls) -> list[str]: ...
 
-class CallableChoiceEnum(ChoiceEnum):
+class CallableChoiceEnumMixin(
+    ChoiceEnumMixin, _CallableEnumMixinProtocol, metaclass=abc.ABCMeta
+):
     def __call__(self, *args, **kwargs): ...
 
 class EnumAction(Action):
-    enum_choices: type[ChoiceEnum] | None
+    enum_choices: type[ChoiceEnumMixin] | None
     def __init__(
         self,
         option_strings: list[str],
@@ -18,8 +28,8 @@ class EnumAction(Action):
         nargs: str | int | None = None,
         const: Any = None,
         default: Any = None,
-        type: type[ChoiceEnum] | Callable | None = None,
-        choices: type[ChoiceEnum] | None = None,
+        type: type[ChoiceEnumMixin] | Callable[..., Any] | None = None,
+        choices: type[ChoiceEnumMixin] | None = None,
         required: bool = False,
         metavar: str | None = None,
     ) -> None: ...

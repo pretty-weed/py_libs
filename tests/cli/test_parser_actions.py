@@ -11,6 +11,11 @@ import pytest
 
 import dandy_lib.cli.parser_actions as pa
 
+from dandy_lib.cli.parser_actions import (
+    NargsRangeAction,
+    NargsRangeAppendAction,
+)
+
 
 class SampleAction(pa.NargsRangeAction):
     """
@@ -48,7 +53,7 @@ class TestNargsRange(unittest.TestCase):
         parser.add_argument(
             "--rangeme",
             nargs=(3, 5),
-            action=SampleAction,
+            action=NargsRangeAction,
             type=int,
         )
 
@@ -56,16 +61,31 @@ class TestNargsRange(unittest.TestCase):
 
         self.assertEqual(parsed.rangeme, [4, 5, 6, 7])
 
-    def test_out_of_range(self):
+    def test_bad_type(self) -> None:
+        parser = ArgumentParser(exit_on_error=False)
+        parser.add_argument(
+            "rangeme", nargs=(3, 5), action=NargsRangeAction, type=int  # type: ignore[arg-type]
+        )
+
+        parsed = parser.parse_args(list("135"))
+        self.assertListEqual(parsed.rangeme, [1, 3, 5])
+        parsed = parser.parse_args(list("13579"))
+        self.assertListEqual(parsed.rangeme, [1, 3, 5, 7, 9])
+        with self.assertRaises(ArgumentError):
+            _ = parser.parse_args(list[str]("123456"))
+        with self.assertRaises(ArgumentError):
+            _ = parser.parse_args(["1.2", "3.5", "5.6"])
+
+    def test_out_of_range(self) -> None:
 
         parser = ArgumentParser(exit_on_error=False)
 
         parser.add_argument(
             "--three_five",
             dest="t",
-            nargs=(3, 5),
+            nargs=(3, 5),  # type: ignore[arg-type]
             type=int,
-            action=SampleAction,
+            action=NargsRangeAction,
         )
 
         with self.assertRaises(ArgumentError):
@@ -84,6 +104,37 @@ class TestNargsRange(unittest.TestCase):
             parser.parse_args(
                 ["--three_five", "1", "2", "3", "4", "5", "6", "7", "8"]
             )
+
+
+class TestNargsRangeAppend(unittest.TestCase):
+    def test_working(self):
+        parser = ArgumentParser(exit_on_error=False)
+
+        parser.add_argument(
+            "--rangeme",
+            nargs=(3, 5),
+            action=NargsRangeAppendAction,
+            type=int,
+        )
+        with self.subTest("single append"):
+            parsed = parser.parse_args(["--rangeme", "4", "5", "6", "7"])
+            self.assertEqual(parsed.rangeme, [[4, 5, 6, 7]])
+        with self.subTest("two appends"):
+            parsed = parser.parse_args(
+                [
+                    "--rangeme",
+                    "4",
+                    "5",
+                    "6",
+                    "7",
+                    "--rangeme",
+                    "8",
+                    "9",
+                    "10",
+                    "11",
+                ]
+            )
+            self.assertEqual(parsed.rangeme, [[4, 5, 6, 7], [8, 9, 10, 11]])
 
 
 class Case(NamedTuple):
@@ -109,7 +160,7 @@ def test_stringsAndLiteralNumber(subtests: pytest.Subtests):
         with subtests.test(str(case)):
             parser = ArgumentParser(exit_on_error=False)
             parser.add_argument(
-                "--foo", nargs=nargs, action=SampleAction, type=int  # type: ignore
+                "--foo", nargs=nargs, action=NargsRangeAction, type=int
             )
 
             # check that fewer than desired (if possible) throws error
@@ -144,7 +195,7 @@ def test_working():
 
     parser.add_argument(
         "--rev_rangeme",
-        nargs=(3, 5),
+        nargs=(3, 5),  # type: ignore[arg-type]
         action=SampleAction,
         type=int,
     )
@@ -163,7 +214,7 @@ def test_out_of_range(subtests: pytest.Subtests):
         dest="t",
         nargs=(3, 5),  # type: ignore
         type=int,
-        action=SampleAction,
+        action=NargsRangeAction,
     )
     with subtests.test("One argument when 3-5 are expected"):
         with pytest.raises(ArgumentError) as cm:

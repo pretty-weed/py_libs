@@ -3,10 +3,11 @@ from .numeric import (
     NonNegInt as NonNegInt,
     NonNegNum as NonNegNum,
 )
+from .tuples import MixableNamedTuple as MixableNamedTuple
 from functools import lru_cache
 from typing import NamedTuple
 
-class Size(NamedTuple):
+class Size(MixableNamedTuple):
     width: NonNegNum
     height: NonNegNum
     @classmethod
@@ -18,9 +19,13 @@ class Vector(NamedTuple):
     x: Number
     y: Number
 
+ZERO_VEC: Vector
+
 class Coord(Vector): ...
 
-class Rect(NamedTuple):
+ZERO_COORD: Coord
+
+class Rect(MixableNamedTuple):
     position: Coord
     size: Size
     def __getattr__(self, name: str) -> Number: ...

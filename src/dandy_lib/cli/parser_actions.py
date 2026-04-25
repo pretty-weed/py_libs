@@ -1,5 +1,7 @@
 from argparse import Action, ArgumentError, ArgumentParser
+from os import name
 from typing import Any, NamedTuple, Protocol, TypeAlias
+from webbrowser import get
 
 
 class Named(Protocol):
@@ -71,7 +73,12 @@ class NargsRangeAction(Action):
             self.n_range = None
         super().__init__(option_strings, dest, nargs, **kwargs)
 
-    def __call__(self, parser, namespace, values, option_string=None):
+    def __call__(self, parser, namespace, values, option_string=None) -> None:
+        values = self._validate_values(values, option_string=option_string)
+        # If the above has not failed...
+        setattr(namespace, self.dest, values)
+
+    def _validate_values(self, values, option_string=None) -> list:
 
         match values:
             case list() | tuple():
@@ -82,13 +89,25 @@ class NargsRangeAction(Action):
             help_name = (
                 option_string
                 if option_string
-                else (self.meta if self.meta else self.dest)
+                else (self.metavar if self.metavar else self.dest)
             )
             expected_msg = f"Expected {self.n_range.start}-{self.n_range.end} ({'not' if not self.n_range.inclusive else ''} inclusive)"
             raise ArgumentError(
                 self,
                 f"Incorrect number of values for {help_name}: {expected_msg}, got {len(values)} ({values}).",
             )
+        if self.type is not None:
+            # MyPy thinks that self.type is a string for some reason
+            return [self.type(v) for v in values]  # type: ignore[operator]
+        return list(values)
+
+
+class NargsRangeAppendAction(NargsRangeAction):
+    def __call__(self, parser, namespace, values, option_string=None) -> None:
+        values = self._validate_values(values, option_string=option_string)
+        items: list[Any] = getattr(namespace, self.dest) or []
+        items.append(values)
+        setattr(namespace, self.dest, items)
 
 
 class ConditionalFailingAction(Action):
