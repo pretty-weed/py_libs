@@ -2,7 +2,6 @@
 Use enums as choices or subparsers in parsers
 """
 
-from curses import meta
 import enum
 from argparse import Action
 from inspect import isclass
