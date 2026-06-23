@@ -1,16 +1,27 @@
-from argparse import Action, ArgumentError, ArgumentParser
+from argparse import Action, ArgumentError, ArgumentParser, Namespace
 from inspect import isclass, signature
 from os import name
 from typing import (
     Any,
     Callable,
     Collection,
+    Literal,
     NamedTuple,
     Protocol,
+    Self,
     Sequence,
+    Type,
+    TypeVar,
     TypeAlias,
+    cast,
 )
 from webbrowser import get
+
+
+class NamedTupleMetaProt(Protocol):
+    _fields: tuple[str, ...]
+
+    def _make(self, iterable: Any) -> Any: ...
 
 
 class Named(Protocol):
@@ -18,11 +29,39 @@ class Named(Protocol):
 
 
 Number: TypeAlias = int | float
+IntfinityLiteral = int | float
+_T = TypeVar("_T", bound=tuple)
+
+
+class TupleHintedNamespace(Namespace):
+    @classmethod
+    def for_classes(
+        cls: type[Self], **fields: type[NamedTupleMetaProt]
+    ) -> type[Self]:
+        """Dynamically builds a Namespace subclass with proper type annotations.
+
+        Usage: TupleHintedNamespace.for_classes(point=Point, user=User)
+        """
+        # Build list annotations, e.g., {'point': list[Point], 'user': list[User]}
+        annotations = {name: list for name, tuple_type in fields.items()}
+
+        # Also pre-populate defaults as empty lists so Pyright knows they exist
+        # class_attributes = {"__annotations__": annotations}
+        # Explicitly hint the dictionary type to prevent restrictive auto-inference
+        class_attributes: dict[str, Any] = {"__annotations__": annotations}
+        for name in fields:
+            class_attributes[name] = []
+
+        # Use cast to assure Pyright that the generated class fits type[Self]
+
+        return cast(
+            type[Self], type(f"Dynamic{cls.__name__}", (cls,), class_attributes)
+        )
 
 
 class Range(NamedTuple):
     start: int
-    end: int
+    end: IntfinityLiteral
     arg: str | int
     inclusive: bool = True
 
@@ -30,12 +69,14 @@ class Range(NamedTuple):
         return self.start != self.end
 
     @classmethod
-    def new(cls, start, end=None, inclusive=True):
+    def new(
+        cls, start: int, end: None | IntfinityLiteral = None, inclusive=True
+    ):
         """
         Factory to allow for single value ranges
         """
         if end is None:
-            arg = start
+            arg: int | str = start
             match start:
                 case "?":
                     start = 0
@@ -51,6 +92,7 @@ class Range(NamedTuple):
                     arg = "+"
                 case _:
                     raise ValueError(f"Invalid value for a range: {start}")
+            assert end is not None
 
         else:
             arg = "+"
@@ -209,3 +251,83 @@ class ConditionalFailingAction(Action):
                 print("forced")
 
         setattr(namespace, self.dest, results[0] if single_result else results)
+
+
+NT_Hint: TypeAlias = Callable[..., tuple[Any, ...]]
+
+
+class NamedTupleAction(Action):
+    NT_CLASS: NT_Hint | None = None
+
+    def __init__(self, *args, **kwargs) -> None:
+        if not self.NT_CLASS:
+            raise ValueError(
+                "Do not use AppendNamedTuple directly. Use AppendNamedTuple.for_class(YourTuple)"
+            )
+
+        # Force argparse to use the subclass-level defaults if not explicitly overwritten
+        kwargs.setdefault("nargs", self.nargs)
+        kwargs.setdefault("metavar", self.metavar)
+        super().__init__(*args, **kwargs)
+
+    @classmethod
+    def for_tuple(cls: Type[Self], tuple_type: Type[NamedTuple]) -> Type[Self]:
+
+        return type(  # type: ignore[override]
+            f"Append{tuple_type.__name__}Action",
+            (cls,),
+            {
+                "NT_CLASS": tuple_type,
+                "nargs": len(tuple_type._fields),
+                "metavar": tuple_type._fields,
+            },
+        )
+
+    def _cast_item(self, values: Sequence[Any]) -> tuple[Any, ...]:
+        if self.NT_CLASS is None:
+            raise RuntimeError("NT_CLASS is not initialized. Use .for_class()")
+
+        annotations: dict[str, Any] = getattr(
+            self.NT_CLASS, "__annotations__", {}
+        )
+        fields: tuple[str, ...] = getattr(self.NT_CLASS, "_fields", ())
+        converted = []
+        for field, value in zip(fields, values):
+            field_type = annotations.get(field, str)
+            try:
+                converted.append(field_type(value))
+            except (ValueError, TypeError) as e:
+                raise ArgumentError(
+                    self, f"Invalid arguments for {self.NT_CLASS.__name__}: {e}"
+                )
+
+        return self.NT_CLASS(*converted)
+
+    # see override note above `values`
+    def __call__(  # type: ignore[override]
+        self,
+        parser: ArgumentParser,
+        namespace: Namespace,
+        # Always have seq values because always nave nargs
+        values: Sequence[Any],
+        option_string=str | None,
+    ):
+
+        if self.NT_CLASS is None:
+            raise RuntimeError("NT_CLASS is not initialized. Use .for_class()")
+
+        items = getattr(namespace, self.dest) or []
+        setattr(namespace, self.dest, self._cast_item(values))
+
+
+class AppendNamedTupleAction(NamedTupleAction):
+
+    def __call__(self, parser, namespace, values: Sequence[Any], option_string=None):  # type: ignore[override]
+        if self.NT_CLASS is None:
+            raise RuntimeError("NT_CLASS is not initialized. Use .for_class()")
+
+        sequence_values = [values] if isinstance(values, str) else list(values)
+
+        items = getattr(namespace, self.dest) or []
+        items.append(self._cast_item(sequence_values))
+        setattr(namespace, self.dest, items)

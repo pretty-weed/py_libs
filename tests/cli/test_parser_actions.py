@@ -1,6 +1,6 @@
 from argparse import ArgumentError, ArgumentParser, Namespace
 from collections import UserList
-from typing import Any, Literal, NamedTuple, Type
+from typing import Any, Generator, Literal, NamedTuple, Type, TypeAlias, TypeVar
 import unittest
 from unittest import mock
 
@@ -15,6 +15,12 @@ import dandy_lib.cli.parser_actions as pa
 from dandy_lib.cli.parser_actions import (
     NargsRangeAction,
     NargsRangeAppendAction,
+    TupleHintedNamespace,
+)
+
+from dandy_lib.cli.parser_actions import (
+    AppendNamedTupleAction,
+    NamedTupleAction,
 )
 
 
@@ -206,7 +212,7 @@ class TestNargsRangeAppend(unittest.TestCase):
             )
 
 
-class Case(NamedTuple):
+class NargsCase(NamedTuple):
     nargs: str | int
     minArgs: int
     maxArgs: int | float
@@ -217,11 +223,11 @@ class Case(NamedTuple):
 
 def test_stringsAndLiteralNumber(subtests: pytest.Subtests):
     intstrs = "0123456789"
-    cases: list[Case] = [  # type: ignore[call-overload]
-        Case("?", 0, 1),
-        Case("*", 0, float("inf")),
-        Case("+", 1, float("inf")),
-        Case(3, 3, 3),
+    cases: list[NargsCase] = [  # type: ignore[call-overload]
+        NargsCase("?", 0, 1),
+        NargsCase("*", 0, float("inf")),
+        NargsCase("+", 1, float("inf")),
+        NargsCase(3, 3, 3),
     ]
 
     for case in cases:
@@ -302,3 +308,159 @@ def test_out_of_range(subtests: pytest.Subtests):
             parser.parse_args(
                 ["--three_five", "1", "2", "3", "4", "5", "6", "7", "8"]
             )
+
+
+# Testing fixture types
+USERNAME = "Baael"
+
+
+@pytest.fixture
+def User() -> Generator[type[tuple], Any, None]:
+    class User(NamedTuple):
+        id: int
+        name: str
+
+    yield User
+
+
+@pytest.fixture
+def Point() -> Generator[type[tuple], Any, None]:
+
+    class Point(NamedTuple):
+        x: int
+        y: int
+        z: int
+
+    yield Point
+
+
+pt_type: TypeAlias = tuple[tuple, tuple[int, int, int]]
+user_type: TypeAlias = tuple[tuple, tuple[int, str]]
+
+
+@pytest.fixture
+def point(Point) -> Generator[pt_type, Any, None]:
+    args = (1, 2, 3)
+    yield Point(*args), args
+
+
+@pytest.fixture
+def user(User) -> Generator[user_type, Any, None]:
+    args = (13, USERNAME)
+    yield User(*args), args
+
+
+def test_named_tuple_append_action(
+    subtests: pytest.Subtests, point: pt_type, user: user_type, Point, User
+) -> None:
+    parser = ArgumentParser(exit_on_error=False)
+    pt, point_init = point
+    usr, user_init = user
+
+    ns = TupleHintedNamespace.for_classes(point=Point, user=User)
+
+    parser.add_argument(
+        "--point", action=AppendNamedTupleAction.for_tuple(Point)
+    )
+    parser.add_argument("--user", action=AppendNamedTupleAction.for_tuple(User))
+
+    with subtests.test("Working"):
+        res = parser.parse_args(
+            ["--point", "1", "2", "3", "--user", "13", USERNAME]
+        )
+        assert len(res.point) == 1
+        assert len(res.user) == 1
+        assert res.point[0].x is res.point[0][0]
+        assert res.point[0].y is res.point[0][1]
+        assert res.point[0].z is res.point[0][2]
+
+        assert res.point[0].x == point_init[0]
+        assert res.point[0].y == point_init[1]
+        assert res.point[0].z == point_init[2]
+
+        assert res.user[0].id == 13
+        assert res.user[0].name == USERNAME
+
+    with subtests.test("Multiple"):
+        new_pt = [4, 5, 6]
+        new_username = "Steve"
+        new_uid = 216
+
+        res = parser.parse_args(
+            [
+                "--point",
+                "1",
+                "2",
+                "3",
+                "--user",
+                "13",
+                USERNAME,
+                "--point",
+                *[str(i) for i in new_pt],
+                "--user",
+                str(new_uid),
+                new_username,
+            ]
+        )
+        assert len(res.point) == 2
+        assert len(res.user) == 2
+        assert res.point[0].x is res.point[0][0]
+        assert res.point[0].y is res.point[0][1]
+        assert res.point[0].z is res.point[0][2]
+
+        assert res.point[0].x == point_init[0]
+        assert res.point[0].y == point_init[1]
+        assert res.point[0].z == point_init[2]
+
+        assert res.point[1].x == new_pt[0]
+        assert res.point[1].y == new_pt[1]
+        assert res.point[1].z == new_pt[2]
+
+        assert res.user[0].id == 13
+        assert res.user[0].name == USERNAME
+        assert res.user[1].id == new_uid
+        assert res.user[1].name == new_username
+
+
+def test_named_tuple_action(
+    point: pt_type, user: user_type, Point, User
+) -> None:
+    parser = ArgumentParser(exit_on_error=False)
+    pt, point_init = point
+    usr, user_init = user
+
+    ns = TupleHintedNamespace.for_classes(point=Point, user=User)
+
+    parser.add_argument("--point", action=NamedTupleAction.for_tuple(Point))
+    parser.add_argument("--user", action=NamedTupleAction.for_tuple(User))
+
+    res = parser.parse_args(
+        ["--point", "1", "2", "3", "--user", "13", USERNAME]
+    )
+    assert len(res.point) == 3
+    assert len(res.user) == 2
+    assert res.point.x is res.point[0]
+    assert res.point.y is res.point[1]
+    assert res.point.z is res.point[2]
+
+    assert res.point.x == point_init[0]
+    assert res.point.y == point_init[1]
+    assert res.point.z == point_init[2]
+
+    assert res.user.id == user_init[0]
+    assert res.user.name == user_init[1]
+
+
+def test_named_tuple_bad_type(subtests: pytest.Subtests, User) -> None:
+    parser = ArgumentParser(exit_on_error=False)
+    parser.add_argument("--user", action=NamedTupleAction.for_tuple(User))
+
+    for invalid_int in ["foo", "None", "3/4", "1.23"]:
+        with subtests.test("invalid_int", test_val=invalid_int):
+            with pytest.raises(ArgumentError) as exc:
+                parser.parse_args(["--user", invalid_int, USERNAME])
+                assert isinstance(exc.value, ArgumentError)
+                assert (
+                    exc.value.message
+                    == f"Invalid arguments for User: invalid literal for int() with base 10: '{invalid_int}'"
+                )
