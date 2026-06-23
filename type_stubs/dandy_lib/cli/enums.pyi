@@ -1,7 +1,6 @@
 import abc
 import enum
 from argparse import Action
-from curses import meta as meta
 from typing import Any, Callable, Protocol, _ProtocolMeta
 
 class ChoiceEnumMeta(enum.EnumMeta, _ProtocolMeta): ...
