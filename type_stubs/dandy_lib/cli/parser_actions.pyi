@@ -1,6 +1,5 @@
 from _typeshed import Incomplete
 from argparse import Action, ArgumentParser, Namespace
-from dandy_lib.datatypes.numeric import Infinity as Infinity
 from typing import (
     Any,
     Callable,
@@ -12,16 +11,17 @@ from typing import (
 )
 from webbrowser import get as get
 
+class NamedTupleMetaProt(Protocol): ...
+
 class Named(Protocol):
     name: str
 
 Number: TypeAlias = int | float
+IntfinityLiteral = int | float
 
 class TupleHintedNamespace(Namespace):
     @classmethod
-    def for_classes(cls, **fields: type[NamedTuple]) -> type[Self]: ...
-
-IntfinityLiteral = int | float
+    def for_classes(cls, **fields: type[NamedTupleMetaProt]) -> type[Self]: ...
 
 class Range(NamedTuple):
     start: int
@@ -68,8 +68,6 @@ class ConditionalFailingAction(Action):
     def __call__(
         self, parser, namespace, values, option_string=None
     ) -> None: ...
-
-class NamedTupleClass(Protocol): ...
 
 NT_Hint: TypeAlias = Callable[..., tuple[Any, ...]]
 
