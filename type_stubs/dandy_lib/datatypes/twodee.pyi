@@ -1,8 +1,4 @@
-from .numeric import (
-    NonNegFloat as NonNegFloat,
-    NonNegInt as NonNegInt,
-    NonNegNum as NonNegNum,
-)
+from .numeric import NonNegNum as NonNegNum
 from .tuples import MixableNamedTuple as MixableNamedTuple
 from functools import lru_cache
 from typing import NamedTuple
@@ -22,6 +18,7 @@ class Vector(NamedTuple):
 ZERO_VEC: Vector
 
 class Coord(Vector): ...
+class Point(Coord): ...
 
 ZERO_COORD: Coord
 

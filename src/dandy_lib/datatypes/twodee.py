@@ -1,7 +1,7 @@
 from functools import lru_cache
 from typing import NamedTuple
 
-from .numeric import NonNegInt, NonNegFloat, NonNegNum
+from .numeric import NonNegNum
 from .tuples import MixableNamedTuple
 
 
@@ -20,6 +20,7 @@ type Number = int | float
 
 
 class Vector(NamedTuple):
+    # ToDo: magnitude()
     x: Number
     y: Number
 
@@ -28,6 +29,11 @@ ZERO_VEC: Vector = Vector(0, 0)
 
 
 class Coord(Vector):
+    # ToDo: distance(Vector)
+    pass
+
+
+class Point(Coord):
     pass
 
 
