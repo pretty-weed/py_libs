@@ -16,6 +16,7 @@ repos:
         exclude: '.*.pyi$'
         pass_filenames: true
         additional_dependencies:
+        - types-requests
         - types-PyYAML
         - pytest-mypy
 
