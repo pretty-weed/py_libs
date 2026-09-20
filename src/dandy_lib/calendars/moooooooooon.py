@@ -16,6 +16,9 @@ class _Phase(IntEnum):
         obj._disp_char = disp_char
         return obj
 
+    def __str__(self) -> str:
+        return self._disp_char
+
     @classmethod
     def members(cls):
         return dict(cls.__members__)
