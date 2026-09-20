@@ -16,9 +16,6 @@ class _Phase(IntEnum):
         obj._disp_char = disp_char
         return obj
 
-    def __str__(self) -> str:
-        return self._disp_char
-
     @classmethod
     def members(cls):
         return dict(cls.__members__)
@@ -51,6 +48,9 @@ class MoonPhase(_Phase):
             return f"{self._disp_char} {self._name_.lower().replace("_", " ")}"
         except AttributeError:
             return f"OOPS: {super().__str__()}"
+
+    def icon(self) -> str:
+        return self._disp_char
 
     @property
     def primary(self) -> bool:
