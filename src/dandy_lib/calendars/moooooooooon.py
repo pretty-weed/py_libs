@@ -1,10 +1,31 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import IntEnum
+from pathlib import Path
 from typing import Self, cast
 
 import requests
 from requests.models import Response
+from yaml import (
+    SafeDumper,
+    SafeLoader,
+    ScalarNode,
+    safe_dump,
+    safe_load,
+)
+from yaml.nodes import MappingNode
+
+PHASE_TAG = "!MoonPhase"
+PHASE_TIME_TAG = "!PhaseTime"
+
+
+class _ToBeSet:
+    pass
+
+
+YET_UNSET = _ToBeSet()
+
+PHASE_CACHE = Path().home().joinpath(".cache", "moon_phases.yml")
 
 
 class _Phase(IntEnum):
@@ -73,6 +94,23 @@ class MoonPhase(_Phase):
         return self if self.secondary else self.next_phase()
 
 
+def phase_representer(dumper: SafeDumper, data: MoonPhase) -> ScalarNode:
+    # Maps the object properties into a YAML mapping node with a custom tag
+    return dumper.represent_scalar(PHASE_TAG, data.name)
+
+
+def phase_constructor(
+    loader: SafeLoader, node: ScalarNode | MappingNode
+) -> MoonPhase:
+    name = loader.construct_scalar(node)
+    return MoonPhase[name]
+
+
+# 5. Register them to your custom Loader and Dumper
+SafeDumper.add_representer(MoonPhase, phase_representer)
+SafeLoader.add_constructor(PHASE_TAG, phase_constructor)
+
+
 def get_by_phase(self, key: MoonPhase | int) -> datetime:
     if isinstance(key, int) and not isinstance(key, MoonPhase):
 
@@ -106,13 +144,6 @@ class CalendarFetchError(BaseException):
         super().__init__(f"{msg}: {response}")
 
 
-class _ToBeSet:
-    pass
-
-
-YET_UNSET = _ToBeSet()
-
-
 @dataclass
 class PhaseTime:
     time: datetime
@@ -128,20 +159,72 @@ class PhaseTime:
         return f"{str(self.cal_time) + ': ' if self.cal_time is not None else ''}{self.phase} @ {self.time}"
 
 
+def phasetime_representer(dumper: SafeDumper, data: PhaseTime) -> MappingNode:
+    return dumper.represent_mapping(
+        PHASE_TIME_TAG,
+        {
+            "time": data.time.isoformat(),
+            "phase": data.phase,
+            "cal_time": cast(datetime, data.cal_time).isoformat(),
+        },
+    )
+
+
+def phasetime_constructor(loader: SafeLoader, node: MappingNode) -> PhaseTime:
+    fields = loader.construct_mapping(node)
+    return PhaseTime(
+        time=datetime.fromisoformat(fields["time"]),
+        phase=MoonPhase[fields["phase"]],
+        cal_time=datetime.fromisoformat(fields["cal_time"]),
+    )
+
+
+SafeDumper.add_representer(PhaseTime, phasetime_representer)
+SafeLoader.add_constructor(PHASE_TIME_TAG, phasetime_constructor)
+
+
 def get_years_between(a: datetime, b: datetime) -> set[int]:
     sy = min(a.year, b.year)
     ey = max(a.year, b.year)
     return set(range(sy, ey + 1))
 
 
-def _get_year_events(year: int):
+def _get_cached_events():
+    if not PHASE_CACHE.is_file():
+        return dict(), False
+    with PHASE_CACHE.open("r") as fh:
+        cache = safe_load(fh)
+        return cache, True
+
+
+def _save_cache(year: int, events: list):
+    if not PHASE_CACHE.parent.exists():
+        PHASE_CACHE.parent.mkdir(parents=True)
+        cache = {}
+    else:
+        cache, _ = _get_cached_events()
+    cache[year] = events
+    with PHASE_CACHE.open("w") as fh:
+        safe_dump(cache, fh)
+
+
+def get_phase_data(year: int, use_cache: bool = True):
+    if use_cache:
+        cache, found = _get_cached_events()
+        if found and (year in cache):
+            return cache[year]
     url = f"https://aa.usno.navy.mil/api/moon/phases/year?year={year}"
 
     try:
-        response: Response = requests.get(url)
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        }
+        response: Response = requests.get(url, headers=headers)
 
     except requests.exceptions.RequestException as e:
-        raise CalendarFetchError("Error Fetching phases", None) from e
+        raise CalendarFetchError(
+            f"Error Fetching phases from {url}", None
+        ) from e
 
     response.raise_for_status()
     data = response.json()
@@ -153,6 +236,14 @@ def _get_year_events(year: int):
     if not phasedata:
         raise CalendarFetchError(url, response, "No Phase data in response")
 
+    if use_cache:
+        _save_cache(year, phasedata)
+
+    return phasedata
+
+
+def _get_year_events(year: int, use_cache: bool = True):
+    phasedata = get_phase_data(year, use_cache=use_cache)
     # Parse the API events into exact datetime objects
     events: list[PhaseTime] = []
     for p in phasedata:
@@ -251,3 +342,13 @@ def get_lunar_calendar(start: datetime, end: datetime):
             current_date += timedelta(days=1)
             assert not any(pt.cal_time is None for pt in phases)
     return phases
+
+
+if __name__ == "__main__":
+    print(
+        safe_dump(
+            get_lunar_calendar(
+                datetime.now(), datetime.now() + timedelta(days=90)
+            )
+        )
+    )
